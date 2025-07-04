@@ -1,4 +1,3 @@
-
 const canvas = document.getElementById('mindmap-canvas');
 const ctx = canvas.getContext('2d');
 
@@ -18,10 +17,10 @@ let connectionStartNode = null;
 let textEditing = false;
 
 const NODE_RADIUS = 60;
-const NODE_COLOR = '#a3b1ff';
-const NODE_SELECTED_COLOR = '#ffc87c';
-const TEXT_COLOR = '#000000';
-const LINE_COLOR = '#808080';
+const NODE_COLOR = '#5c6bc0'; // Muted Indigo for father nodes
+const NODE_SELECTED_COLOR = '#ffca28'; // Soft gold for selected nodes
+const TEXT_COLOR = '#333333'; // Dark grey for text
+const LINE_COLOR = '#757575'; // Slightly darker grey for lines
 
 function resizeCanvas() {
     canvas.width = window.innerWidth;
@@ -100,7 +99,7 @@ function drawNode(node) {
     let currentRadius = NODE_RADIUS; // Start with default radius
 
     // Temporarily set font for initial text measurement
-    ctx.font = `${16 * camera.zoom}px Arial`;
+    ctx.font = `${16 * camera.zoom}px Inter`; // Use Inter font
     const words = node.text.split(' ');
     let longestWordWidth = 0;
     words.forEach(word => {
@@ -122,8 +121,8 @@ function drawNode(node) {
     const size = currentRadius * camera.zoom; // Final size for drawing
 
     if (node === selectedNode) {
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = '#8A2BE2';
+        ctx.shadowBlur = 15; // Softer glow
+        ctx.shadowColor = 'rgba(255, 202, 40, 0.8)'; // Soft gold glow
     } else {
         ctx.shadowBlur = 0;
     }
@@ -144,7 +143,7 @@ function drawNode(node) {
     }
     ctx.fill();
     ctx.shadowBlur = 0; // Reset shadow for other elements
-    ctx.strokeStyle = '#505050';
+    ctx.strokeStyle = LINE_COLOR; // Use updated LINE_COLOR
     ctx.stroke();
 
     // Draw text with wrapping and dynamic font size
@@ -152,11 +151,10 @@ function drawNode(node) {
     const maxTextHeight = (size * 2) * 0.8; // 80% of node height for text
     let fontSize = 16 * camera.zoom;
     let lines = [];
-    let textHeight = 0;
     const minFontSize = 8; // Minimum readable font size
 
     do {
-        ctx.font = `${fontSize}px Arial`;
+        ctx.font = `${fontSize}px Inter`; // Use Inter font
         lines = wrapText(ctx, node.text, maxTextWidth);
         textHeight = lines.length * fontSize * 1.2; // 1.2 for line spacing
         if (textHeight > maxTextHeight && fontSize > minFontSize) {
@@ -195,123 +193,9 @@ function drawNode(node) {
     } else {
         node.urlIconBounds = null; // Clear bounds if no URL
     }
+}
 
-    // Draw link icon if URL exists
-    if (node.url && linkIcon.complete) {
-        const iconSize = 20 * camera.zoom; // Adjust size as needed
-        const iconX = screenPos.x + size - iconSize / 2; // Position to the right of the node
-        const iconY = screenPos.y - size + iconSize / 2; // Position to the top of the node
-
-        ctx.drawImage(linkIcon, iconX - iconSize / 2, iconY - iconSize / 2, iconSize, iconSize);
-
-        // Store icon bounds for click detection (absolute screen coordinates)
-        node.urlIconBounds = {
-            x: iconX - iconSize / 2,
-            y: iconY - iconSize / 2,
-            width: iconSize,
-            height: iconSize
-        };
-    } else {
-        node.urlIconBounds = null; // Clear bounds if no URL
-    }
-
-    // Draw link icon if URL exists
-    if (node.url && linkIcon.complete) {
-        const iconSize = 20 * camera.zoom; // Adjust size as needed
-        const iconX = screenPos.x + size - iconSize / 2; // Position to the right of the node
-        const iconY = screenPos.y - size + iconSize / 2; // Position to the top of the node
-
-        ctx.drawImage(linkIcon, iconX - iconSize / 2, iconY - iconSize / 2, iconSize, iconSize);
-
-        // Store icon bounds for click detection (absolute screen coordinates)
-        node.urlIconBounds = {
-            x: iconX - iconSize / 2,
-            y: iconY - iconSize / 2,
-            width: iconSize,
-            height: iconSize
-        };
-    } else {
-        node.urlIconBounds = null; // Clear bounds if no URL
-    }
-
-    // Draw link icon if URL exists
-    if (node.url && linkIcon.complete) {
-        const iconSize = 20 * camera.zoom; // Adjust size as needed
-        const iconX = screenPos.x + size - iconSize / 2; // Position to the right of the node
-        const iconY = screenPos.y - size + iconSize / 2; // Position to the top of the node
-
-        ctx.drawImage(linkIcon, iconX - iconSize / 2, iconY - iconSize / 2, iconSize, iconSize);
-
-        // Store icon bounds for click detection (absolute screen coordinates)
-        node.urlIconBounds = {
-            x: iconX - iconSize / 2,
-            y: iconY - iconSize / 2,
-            width: iconSize,
-            height: iconSize
-        };
-    } else {
-        node.urlIconBounds = null; // Clear bounds if no URL
-    }
-
-    // Draw link icon if URL exists
-    if (node.url && linkIcon.complete) {
-        const iconSize = 20 * camera.zoom; // Adjust size as needed
-        const iconX = screenPos.x + size - iconSize / 2; // Position to the right of the node
-        const iconY = screenPos.y - size + iconSize / 2; // Position to the top of the node
-
-        ctx.drawImage(linkIcon, iconX - iconSize / 2, iconY - iconSize / 2, iconSize, iconSize);
-
-        // Store icon bounds for click detection (absolute screen coordinates)
-        node.urlIconBounds = {
-            x: iconX - iconSize / 2,
-            y: iconY - iconSize / 2,
-            width: iconSize,
-            height: iconSize
-        };
-    } else {
-        node.urlIconBounds = null; // Clear bounds if no URL
-    }
-
-    // Draw link icon if URL exists
-    if (node.url && linkIcon.complete) {
-        const iconSize = 20 * camera.zoom; // Adjust size as needed
-        const iconX = screenPos.x + size - iconSize / 2; // Position to the right of the node
-        const iconY = screenPos.y - size + iconSize / 2; // Position to the top of the node
-
-        ctx.drawImage(linkIcon, iconX - iconSize / 2, iconY - iconSize / 2, iconSize, iconSize);
-
-        // Store icon bounds for click detection (absolute screen coordinates)
-        node.urlIconBounds = {
-            x: iconX - iconSize / 2,
-            y: iconY - iconSize / 2,
-            width: iconSize,
-            height: iconSize
-        };
-    } else {
-        node.urlIconBounds = null; // Clear bounds if no URL
-    }
-
-    // Draw link icon if URL exists
-    if (node.url && linkIcon.complete) {
-        const iconSize = 20 * camera.zoom; // Adjust size as needed
-        const iconX = screenPos.x + size - iconSize / 2; // Position to the right of the node
-        const iconY = screenPos.y - size + iconSize / 2; // Position to the top of the node
-
-        ctx.drawImage(linkIcon, iconX - iconSize / 2, iconY - iconSize / 2, iconSize, iconSize);
-
-        // Store icon bounds for click detection (absolute screen coordinates)
-        node.urlIconBounds = {
-            x: iconX - iconSize / 2,
-            y: iconY - iconSize / 2,
-            width: iconSize,
-            height: iconSize
-        };
-    } else {
-        node.urlIconBounds = null; // Clear bounds if no URL
-    }
-
-    
-}function drawConnections() {
+function drawConnections() {
     ctx.strokeStyle = LINE_COLOR;
     ctx.lineWidth = 2 * camera.zoom;
     connections.forEach(([startIdx, endIdx]) => {
@@ -615,6 +499,20 @@ function loadMap() {
 // Attach event listeners to buttons
 document.getElementById('save-button').addEventListener('click', saveMap);
 document.getElementById('load-button').addEventListener('click', loadMap);
+
+// Help text toggle
+const helpText = document.getElementById('help-text');
+const helpToggleButton = document.getElementById('help-toggle-button');
+let helpVisible = true; // Start visible
+
+helpToggleButton.addEventListener('click', () => {
+    helpVisible = !helpVisible;
+    if (helpVisible) {
+        helpText.classList.remove('hidden');
+    } else {
+        helpText.classList.add('hidden');
+    }
+});
 
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
