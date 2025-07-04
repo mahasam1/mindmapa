@@ -298,6 +298,40 @@ canvas.addEventListener('mouseup', (e) => {
                 connections.push([startIdx, endIdx]);
             }
         }
+    } else if (draggingNode) { // Handle reparenting on left-click drag release
+        const mousePos = { x: e.clientX, y: e.clientY };
+        const worldPos = screenToWorld(mousePos.x, mousePos.y);
+        let dropTargetNode = null;
+
+        for (let i = nodes.length - 1; i >= 0; i--) {
+            const node = nodes[i];
+            if (node === draggingNode) continue; // Cannot reparent to self
+
+            const dx = worldPos.x - node.x;
+            const dy = worldPos.y - node.y;
+            if (dx * dx + dy * dy < NODE_RADIUS * NODE_RADIUS) {
+                dropTargetNode = node;
+                break;
+            }
+        }
+
+        if (dropTargetNode) {
+            const draggingNodeIndex = nodes.indexOf(draggingNode);
+            const dropTargetNodeIndex = nodes.indexOf(dropTargetNode);
+
+            // Prevent reparenting if target is a descendant of the dragged node
+            if (!isDescendant(draggingNode, dropTargetNode)) {
+                // Remove existing parent connection for draggingNode
+                connections = connections.filter(conn => conn[1] !== draggingNodeIndex);
+
+                // Add new connection from dropTargetNode to draggingNode
+                connections.push([dropTargetNodeIndex, draggingNodeIndex]);
+
+                // Ensure the reparented node is a 'child' type and pink
+                draggingNode.type = 'child';
+                draggingNode.color = '#FF69B4';
+            }
+        }
     }
 
     draggingNode = null;
@@ -307,6 +341,41 @@ canvas.addEventListener('mouseup', (e) => {
     draw();
     saveState();
 });
+
+// Helper function to check if a node is a descendant of another
+function isDescendant(potentialParent, potentialChild) {
+    const parentIndex = nodes.indexOf(potentialParent);
+    const childIndex = nodes.indexOf(potentialChild);
+
+    if (parentIndex === -1 || childIndex === -1) {
+        return false; // One or both nodes not found
+    }
+
+    // Use a breadth-first search (BFS) to find all descendants of potentialParent
+    const queue = [parentIndex];
+    const visited = new Set();
+    visited.add(parentIndex);
+
+    let head = 0;
+    while (head < queue.length) {
+        const currentIdx = queue[head++];
+
+        // If the current node is the potentialChild, then potentialChild is a descendant
+        if (currentIdx === childIndex) {
+            return true;
+        }
+
+        // Find children of the current node
+        const childrenOfCurrent = connections.filter(c => c[0] === currentIdx).map(c => c[1]);
+        for (const childIdx of childrenOfCurrent) {
+            if (!visited.has(childIdx)) {
+                visited.add(childIdx);
+                queue.push(childIdx);
+            }
+        }
+    }
+    return false; // potentialChild is not a descendant
+}
 
 canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
