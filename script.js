@@ -10,6 +10,8 @@ let camera = {
 };
 let selectedNode = null;
 let draggingNode = null;
+let draggingNodeInitialPos = { x: 0, y: 0 };
+let draggedDescendantOffsets = new Map(); // Stores {node: {dx, dy}} for descendants
 let panning = false;
 let lastMousePos = { x: 0, y: 0 };
 let drawingConnection = false;
@@ -257,6 +259,18 @@ canvas.addEventListener('mousedown', (e) => {
             if (e.button === 0) { // Left click
                 selectedNode = node;
                 draggingNode = node;
+                draggingNodeInitialPos = { x: node.x, y: node.y };
+                draggedDescendantOffsets.clear();
+
+                // If the dragged node has children, calculate their offsets
+                const descendants = getAllDescendants(draggingNode);
+                descendants.forEach(descendant => {
+                    draggedDescendantOffsets.set(descendant, {
+                        dx: descendant.x - draggingNode.x,
+                        dy: descendant.y - draggingNode.y
+                    });
+                });
+
                 textEditing = false;
                 isFirstKeyAfterSelection = true; // Set flag when node is selected
 
@@ -288,8 +302,18 @@ canvas.addEventListener('mousemove', (e) => {
     const mousePos = { x: e.clientX, y: e.clientY };
     if (draggingNode) {
         const worldPos = screenToWorld(mousePos.x, mousePos.y);
+        const dx = worldPos.x - draggingNodeInitialPos.x;
+        const dy = worldPos.y - draggingNodeInitialPos.y;
+
         draggingNode.x = worldPos.x;
         draggingNode.y = worldPos.y;
+
+        // Move descendants with the dragging node
+        draggedDescendantOffsets.forEach((offset, descendant) => {
+            descendant.x = draggingNode.x + offset.dx;
+            descendant.y = draggingNode.y + offset.dy;
+        });
+
     } else if (panning) {
         const dx = mousePos.x - lastMousePos.x;
         const dy = mousePos.y - lastMousePos.y;
@@ -395,6 +419,29 @@ function isDescendant(potentialParent, potentialChild) {
         }
     }
     return false; // potentialChild is not a descendant
+}
+
+function getAllDescendants(node) {
+    const descendants = new Set();
+    const queue = [node];
+    const visited = new Set();
+    visited.add(node);
+
+    let head = 0;
+    while (head < queue.length) {
+        const currentNode = queue[head++];
+        const currentNodeIndex = nodes.indexOf(currentNode);
+
+        const childrenOfCurrent = connections.filter(c => c[0] === currentNodeIndex).map(c => nodes[c[1]]);
+        for (const childNode of childrenOfCurrent) {
+            if (childNode && !visited.has(childNode)) {
+                visited.add(childNode);
+                descendants.add(childNode);
+                queue.push(childNode);
+            }
+        }
+    }
+    return Array.from(descendants);
 }
 
 function checkCollision(newNodeX, newNodeY, newNodeRadius) {
