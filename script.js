@@ -46,9 +46,35 @@ function screenToWorld(x, y) {
     };
 }
 
+function getNodeLevel(node) {
+    let level = 0;
+    let queue = [{ node: node, currentLevel: 0 }];
+    let visited = new Set();
+
+    while (queue.length > 0) {
+        let { node: currentNode, currentLevel } = queue.shift();
+
+        if (visited.has(currentNode)) {
+            continue;
+        }
+        visited.add(currentNode);
+
+        // Find parents of the current node
+        const parentConnections = connections.filter(c => nodes[c[1]] === currentNode);
+        if (parentConnections.length > 0) {
+            for (const conn of parentConnections) {
+                const parentNode = nodes[conn[0]];
+                level = Math.max(level, currentLevel + 1);
+                queue.push({ node: parentNode, currentLevel: currentLevel + 1 });
+            }
+        }
+    }
+    return level;
+}
+
 function drawNode(node) {
     const screenPos = worldToScreen(node.x, node.y);
-    const radius = NODE_RADIUS * camera.zoom;
+    const size = NODE_RADIUS * camera.zoom;
 
     if (node === selectedNode) {
         ctx.shadowBlur = 20;
@@ -57,9 +83,27 @@ function drawNode(node) {
         ctx.shadowBlur = 0;
     }
 
-    ctx.fillStyle = node === selectedNode ? NODE_SELECTED_COLOR : NODE_COLOR;
+    // Determine fill color based on node type and level
+    let fillColor = node.color;
+    if (node.type === 'child' || node.type === 'grandchild') {
+        const level = getNodeLevel(node);
+        if (level === 1) { // Direct child
+            fillColor = '#8BC34A'; // Green
+        } else if (level > 1) { // Grandchild or deeper
+            // Lighter green based on level
+            const lightness = 70 + (level - 2) * 5; // Adjust as needed
+            fillColor = `hsl(90, 60%, ${lightness}%)`;
+        }
+    }
+
+    ctx.fillStyle = node === selectedNode ? NODE_SELECTED_COLOR : fillColor;
+
     ctx.beginPath();
-    ctx.arc(screenPos.x, screenPos.y, radius, 0, Math.PI * 2);
+    if (node.shape === 'square') {
+        ctx.rect(screenPos.x - size, screenPos.y - size, size * 2, size * 2);
+    } else { // Default to circle
+        ctx.arc(screenPos.x, screenPos.y, size, 0, Math.PI * 2);
+    }
     ctx.fill();
     ctx.shadowBlur = 0; // Reset shadow for other elements
     ctx.strokeStyle = '#505050';
@@ -191,25 +235,57 @@ canvas.addEventListener('wheel', (e) => {
 });
 
 canvas.addEventListener('dblclick', (e) => {
-    const worldPos = screenToWorld(e.clientX, e.clientY);
-    nodes.push({
-        x: worldPos.x,
-        y: worldPos.y,
-        text: 'New Node'
-    });
-    selectedNode = nodes[nodes.length - 1];
-    textEditing = true;
-    draw();
+    if (!selectedNode) { // Only create a new node if no node is currently selected
+        const worldPos = screenToWorld(e.clientX, e.clientY);
+        nodes.push({
+            x: worldPos.x,
+            y: worldPos.y,
+            text: 'Father Node',
+            type: 'father',
+            shape: 'circle',
+            color: NODE_COLOR
+        });
+        selectedNode = nodes[nodes.length - 1];
+        textEditing = true;
+        draw();
+        saveState();
+    }
 });
 
 window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        nodes = [];
+        connections = [];
+        selectedNode = null;
+        draggingNode = null;
+        panning = false;
+        drawingConnection = false;
+        connectionStartNode = null;
+        textEditing = false;
+        // Re-initialize the single father node in the center
+        nodes.push({
+            x: 0,
+            y: 0,
+            text: 'Father Node',
+            type: 'father',
+            shape: 'circle',
+            color: NODE_COLOR
+        });
+        draw();
+        saveState();
+        return; // Stop further execution
+    }
+
     if (e.key === 'Tab' && selectedNode) {
         e.preventDefault(); // Prevent default tab behavior
         const parentNode = selectedNode;
         const newNode = {
             x: parentNode.x + NODE_RADIUS * 2.5,
             y: parentNode.y,
-            text: 'New Node'
+            text: 'Child Node',
+            type: 'child',
+            shape: 'square',
+            color: '#8BC34A' // Green
         };
         nodes.push(newNode);
         const parentIndex = nodes.indexOf(parentNode);
@@ -222,32 +298,43 @@ window.addEventListener('keydown', (e) => {
         return; // Stop further execution
     }
 
-    if (textEditing && selectedNode) {
-        if (e.key === 'Enter') {
-            textEditing = false;
-            const parentConnection = connections.find(c => nodes[c[1]] === selectedNode);
-            if (parentConnection) {
-                const parentNode = nodes[parentConnection[0]];
-                const newNode = {
-                    x: selectedNode.x,
-                    y: selectedNode.y + NODE_RADIUS * 1.5,
-                    text: 'New Node'
-                };
-                nodes.push(newNode);
-                const parentIndex = nodes.indexOf(parentNode);
-                const newIndex = nodes.length - 1;
-                connections.push([parentIndex, newIndex]);
-                selectedNode = newNode;
-                textEditing = true;
-                saveState();
-            }
-        } else if (e.key === 'Backspace') {
+    if (e.key === 'Enter' && selectedNode) {
+        e.preventDefault(); // Prevent default Enter behavior (e.g., new line in input fields)
+        textEditing = false; // Always stop text editing on Enter
+        
+        // Create sibling node logic
+        const parentConnection = connections.find(c => nodes[c[1]] === selectedNode);
+        if (parentConnection) {
+            const parentNode = nodes[parentConnection[0]];
+            const newNode = {
+                x: selectedNode.x,
+                y: selectedNode.y + NODE_RADIUS * 1.5,
+                text: 'Child Node',
+                type: 'child',
+                shape: 'square',
+                color: '#8BC34A' // Green
+            };
+            nodes.push(newNode);
+            const parentIndex = nodes.indexOf(parentNode);
+            const newIndex = nodes.length - 1;
+            connections.push([parentIndex, newIndex]);
+            selectedNode = newNode; // Select the new node
+            textEditing = true; // Start editing the new node
+            saveState();
+        }
+        draw();
+        return; // Stop further execution
+    }
+
+    // General text editing logic for selected node
+    if (selectedNode && textEditing) {
+        if (e.key === 'Backspace') {
             selectedNode.text = selectedNode.text.slice(0, -1);
-        } else if (e.key.length === 1) {
+        } else if (e.key.length === 1) { // Only append single character keys
             selectedNode.text += e.key;
         }
         draw();
-    } else if (selectedNode && e.key.length === 1) {
+    } else if (selectedNode && e.key.length === 1) { // Start text editing if a character key is pressed on a selected node
         selectedNode.text = e.key;
         textEditing = true;
         draw();
@@ -271,6 +358,18 @@ function loadState() {
         nodes = state.nodes || [];
         connections = state.connections || [];
         camera = state.camera || { x: 0, y: 0, zoom: 1 };
+    }
+
+    // If no nodes are loaded, create a default father node in the center
+    if (nodes.length === 0) {
+        nodes.push({
+            x: 0,
+            y: 0,
+            text: 'Father Node',
+            type: 'father',
+            shape: 'circle',
+            color: NODE_COLOR
+        });
     }
 }
 
