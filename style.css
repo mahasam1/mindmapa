@@ -28,6 +28,44 @@ body, html {
     max-width: 250px;
 }
 
+#save-button {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    padding: 10px 15px;
+    background-color: #4CAF50; /* Green */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    z-index: 1000; /* Ensure it's above the canvas */
+}
+
+#save-button:hover {
+    background-color: #45a049;
+}
+
+#load-button {
+    position: absolute;
+    top: 15px;
+    left: 130px; /* Adjust based on save button width */
+    padding: 10px 15px;
+    background-color: #008CBA; /* Blue */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    z-index: 1000;
+}
+
+#load-button:hover {
+    background-color: #007B9E;
+}
+
 #help-text h3 {
     margin-top: 0;
     margin-bottom: 10px;

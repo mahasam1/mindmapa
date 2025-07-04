@@ -206,10 +206,122 @@ function drawNode(node) {
         node.urlIconBounds = null; // Clear bounds if no URL
     }
 
-    
-}
+    // Draw link icon if URL exists
+    if (node.url && linkIcon.complete) {
+        const iconSize = 20 * camera.zoom; // Adjust size as needed
+        const iconX = screenPos.x + size - iconSize / 2; // Position to the right of the node
+        const iconY = screenPos.y - size + iconSize / 2; // Position to the top of the node
 
-function drawConnections() {
+        ctx.drawImage(linkIcon, iconX - iconSize / 2, iconY - iconSize / 2, iconSize, iconSize);
+
+        // Store icon bounds for click detection (absolute screen coordinates)
+        node.urlIconBounds = {
+            x: iconX - iconSize / 2,
+            y: iconY - iconSize / 2,
+            width: iconSize,
+            height: iconSize
+        };
+    } else {
+        node.urlIconBounds = null; // Clear bounds if no URL
+    }
+
+    // Draw link icon if URL exists
+    if (node.url && linkIcon.complete) {
+        const iconSize = 20 * camera.zoom; // Adjust size as needed
+        const iconX = screenPos.x + size - iconSize / 2; // Position to the right of the node
+        const iconY = screenPos.y - size + iconSize / 2; // Position to the top of the node
+
+        ctx.drawImage(linkIcon, iconX - iconSize / 2, iconY - iconSize / 2, iconSize, iconSize);
+
+        // Store icon bounds for click detection (absolute screen coordinates)
+        node.urlIconBounds = {
+            x: iconX - iconSize / 2,
+            y: iconY - iconSize / 2,
+            width: iconSize,
+            height: iconSize
+        };
+    } else {
+        node.urlIconBounds = null; // Clear bounds if no URL
+    }
+
+    // Draw link icon if URL exists
+    if (node.url && linkIcon.complete) {
+        const iconSize = 20 * camera.zoom; // Adjust size as needed
+        const iconX = screenPos.x + size - iconSize / 2; // Position to the right of the node
+        const iconY = screenPos.y - size + iconSize / 2; // Position to the top of the node
+
+        ctx.drawImage(linkIcon, iconX - iconSize / 2, iconY - iconSize / 2, iconSize, iconSize);
+
+        // Store icon bounds for click detection (absolute screen coordinates)
+        node.urlIconBounds = {
+            x: iconX - iconSize / 2,
+            y: iconY - iconSize / 2,
+            width: iconSize,
+            height: iconSize
+        };
+    } else {
+        node.urlIconBounds = null; // Clear bounds if no URL
+    }
+
+    // Draw link icon if URL exists
+    if (node.url && linkIcon.complete) {
+        const iconSize = 20 * camera.zoom; // Adjust size as needed
+        const iconX = screenPos.x + size - iconSize / 2; // Position to the right of the node
+        const iconY = screenPos.y - size + iconSize / 2; // Position to the top of the node
+
+        ctx.drawImage(linkIcon, iconX - iconSize / 2, iconY - iconSize / 2, iconSize, iconSize);
+
+        // Store icon bounds for click detection (absolute screen coordinates)
+        node.urlIconBounds = {
+            x: iconX - iconSize / 2,
+            y: iconY - iconSize / 2,
+            width: iconSize,
+            height: iconSize
+        };
+    } else {
+        node.urlIconBounds = null; // Clear bounds if no URL
+    }
+
+    // Draw link icon if URL exists
+    if (node.url && linkIcon.complete) {
+        const iconSize = 20 * camera.zoom; // Adjust size as needed
+        const iconX = screenPos.x + size - iconSize / 2; // Position to the right of the node
+        const iconY = screenPos.y - size + iconSize / 2; // Position to the top of the node
+
+        ctx.drawImage(linkIcon, iconX - iconSize / 2, iconY - iconSize / 2, iconSize, iconSize);
+
+        // Store icon bounds for click detection (absolute screen coordinates)
+        node.urlIconBounds = {
+            x: iconX - iconSize / 2,
+            y: iconY - iconSize / 2,
+            width: iconSize,
+            height: iconSize
+        };
+    } else {
+        node.urlIconBounds = null; // Clear bounds if no URL
+    }
+
+    // Draw link icon if URL exists
+    if (node.url && linkIcon.complete) {
+        const iconSize = 20 * camera.zoom; // Adjust size as needed
+        const iconX = screenPos.x + size - iconSize / 2; // Position to the right of the node
+        const iconY = screenPos.y - size + iconSize / 2; // Position to the top of the node
+
+        ctx.drawImage(linkIcon, iconX - iconSize / 2, iconY - iconSize / 2, iconSize, iconSize);
+
+        // Store icon bounds for click detection (absolute screen coordinates)
+        node.urlIconBounds = {
+            x: iconX - iconSize / 2,
+            y: iconY - iconSize / 2,
+            width: iconSize,
+            height: iconSize
+        };
+    } else {
+        node.urlIconBounds = null; // Clear bounds if no URL
+    }
+
+    
+}function drawConnections() {
     ctx.strokeStyle = LINE_COLOR;
     ctx.lineWidth = 2 * camera.zoom;
     connections.forEach(([startIdx, endIdx]) => {
@@ -464,6 +576,55 @@ window.addEventListener('paste', (e) => {
         }
     }
 });
+
+function saveMap() {
+    const data = {
+        nodes: nodes,
+        connections: connections,
+        camera: camera
+    };
+    const json = JSON.stringify(data, null, 4);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'mindmap.dimap';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function loadMap() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.dimap';
+    input.onchange = e => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = event => {
+                try {
+                    const loadedData = JSON.parse(event.target.result);
+                    nodes = loadedData.nodes || [];
+                    connections = loadedData.connections || [];
+                    camera = loadedData.camera || { x: 0, y: 0, zoom: 1 };
+                    draw();
+                    saveState(); // Save to local storage after loading
+                } catch (error) {
+                    console.error('Error parsing mind map file:', error);
+                    alert('Error loading mind map: Invalid file format.');
+                }
+            };
+            reader.readAsText(file);
+        }
+    };
+    input.click();
+}
+
+// Attach event listeners to buttons
+document.getElementById('save-button').addEventListener('click', saveMap);
+document.getElementById('load-button').addEventListener('click', loadMap);
 
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
