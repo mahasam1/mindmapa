@@ -225,6 +225,22 @@ window.addEventListener('keydown', (e) => {
     if (textEditing && selectedNode) {
         if (e.key === 'Enter') {
             textEditing = false;
+            const parentConnection = connections.find(c => nodes[c[1]] === selectedNode);
+            if (parentConnection) {
+                const parentNode = nodes[parentConnection[0]];
+                const newNode = {
+                    x: selectedNode.x,
+                    y: selectedNode.y + NODE_RADIUS * 1.5,
+                    text: 'New Node'
+                };
+                nodes.push(newNode);
+                const parentIndex = nodes.indexOf(parentNode);
+                const newIndex = nodes.length - 1;
+                connections.push([parentIndex, newIndex]);
+                selectedNode = newNode;
+                textEditing = true;
+                saveState();
+            }
         } else if (e.key === 'Backspace') {
             selectedNode.text = selectedNode.text.slice(0, -1);
         } else if (e.key.length === 1) {
