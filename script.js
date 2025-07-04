@@ -415,6 +415,28 @@ window.addEventListener('keydown', (e) => {
         return; // Stop further execution
     }
 
+    if (e.key === 'Delete' && selectedNode) {
+        e.preventDefault();
+        const deletedNodeIndex = nodes.indexOf(selectedNode);
+        if (deletedNodeIndex !== -1) {
+            // Remove node
+            nodes.splice(deletedNodeIndex, 1);
+
+            // Update connections
+            connections = connections.filter(conn => 
+                conn[0] !== deletedNodeIndex && conn[1] !== deletedNodeIndex
+            ).map(conn => [
+                conn[0] > deletedNodeIndex ? conn[0] - 1 : conn[0],
+                conn[1] > deletedNodeIndex ? conn[1] - 1 : conn[1]
+            ]);
+
+            selectedNode = null;
+            draw();
+            saveState();
+        }
+        return; // Stop further execution
+    }
+
     // General text editing logic for selected node
     if (selectedNode && textEditing) {
         if (e.key === 'Backspace') {
