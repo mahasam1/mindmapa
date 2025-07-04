@@ -72,9 +72,51 @@ function getNodeLevel(node) {
     return level;
 }
 
+function wrapText(context, text, maxWidth) {
+    const words = text.split(' ');
+    let line = '';
+    const lines = [];
+
+    for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + ' ';
+        const metrics = context.measureText(testLine);
+        const testWidth = metrics.width;
+        if (testWidth > maxWidth && n > 0) {
+            lines.push(line.trim());
+            line = words[n] + ' ';
+        } else {
+            line = testLine;
+        }
+    }
+    lines.push(line.trim());
+    return lines;
+}
+
 function drawNode(node) {
     const screenPos = worldToScreen(node.x, node.y);
-    const size = NODE_RADIUS * camera.zoom;
+    let currentRadius = NODE_RADIUS; // Start with default radius
+
+    // Temporarily set font for initial text measurement
+    ctx.font = `${16 * camera.zoom}px Arial`;
+    const words = node.text.split(' ');
+    let longestWordWidth = 0;
+    words.forEach(word => {
+        const wordWidth = ctx.measureText(word).width;
+        if (wordWidth > longestWordWidth) {
+            longestWordWidth = wordWidth;
+        }
+    });
+
+    // Calculate required radius to fit the longest word
+    const requiredWidthForLongestWord = longestWordWidth / 0.8; // 80% of node width for text
+    const requiredRadiusForLongestWord = requiredWidthForLongestWord / (2 * camera.zoom);
+
+    // Adjust currentRadius if a single word is too long
+    if (requiredRadiusForLongestWord > currentRadius) {
+        currentRadius = requiredRadiusForLongestWord;
+    }
+
+    const size = currentRadius * camera.zoom; // Final size for drawing
 
     if (node === selectedNode) {
         ctx.shadowBlur = 20;
@@ -98,9 +140,12 @@ function drawNode(node) {
 
     ctx.fillStyle = node === selectedNode ? NODE_SELECTED_COLOR : fillColor;
 
+    const borderRadius = 10; // Radius for rounded corners
+
     ctx.beginPath();
     if (node.shape === 'square') {
-        ctx.rect(screenPos.x - size, screenPos.y - size, size * 2, size * 2);
+        // Draw a rounded rectangle
+        ctx.roundRect(screenPos.x - size, screenPos.y - size, size * 2, size * 2, borderRadius);
     } else { // Default to circle
         ctx.arc(screenPos.x, screenPos.y, size, 0, Math.PI * 2);
     }
@@ -109,11 +154,35 @@ function drawNode(node) {
     ctx.strokeStyle = '#505050';
     ctx.stroke();
 
-    ctx.fillStyle = TEXT_COLOR;
-    ctx.font = `${16 * camera.zoom}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(node.text, screenPos.x, screenPos.y);
+    // Draw text with wrapping and dynamic font size
+    const maxTextWidth = (size * 2) * 0.8; // 80% of node width for text
+    const maxTextHeight = (size * 2) * 0.8; // 80% of node height for text
+    let fontSize = 16 * camera.zoom;
+    let lines = [];
+    let textHeight = 0;
+    const minFontSize = 8; // Minimum readable font size
+
+    do {
+        ctx.font = `${fontSize}px Arial`;
+        lines = wrapText(ctx, node.text, maxTextWidth);
+        textHeight = lines.length * fontSize * 1.2; // 1.2 for line spacing
+        if (textHeight > maxTextHeight && fontSize > minFontSize) {
+            fontSize -= 1; // Reduce font size
+        } else {
+            break; // Fits or reached min font size
+        }
+    } while (fontSize >= minFontSize);
+
+    if (fontSize >= minFontSize) {
+        ctx.fillStyle = TEXT_COLOR;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        let yOffset = screenPos.y - (textHeight / 2) + (fontSize * 0.6); // Adjust for vertical centering
+        lines.forEach(line => {
+            ctx.fillText(line, screenPos.x, yOffset);
+            yOffset += fontSize * 1.2;
+        });
+    }
 }
 
 function drawConnections() {
