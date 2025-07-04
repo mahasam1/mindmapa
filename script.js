@@ -377,6 +377,23 @@ function isDescendant(potentialParent, potentialChild) {
     return false; // potentialChild is not a descendant
 }
 
+function checkCollision(newNodeX, newNodeY, newNodeRadius) {
+    for (const existingNode of nodes) {
+        // Calculate distance between centers
+        const dx = newNodeX - existingNode.x;
+        const dy = newNodeY - existingNode.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        // Sum of radii (assuming all nodes have NODE_RADIUS for collision check)
+        const sumOfRadii = newNodeRadius + NODE_RADIUS; // Using NODE_RADIUS for simplicity in collision check
+
+        if (distance < sumOfRadii) {
+            return true; // Collision detected
+        }
+    }
+    return false; // No collision
+}
+
 canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
     const zoomFactor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
@@ -435,9 +452,22 @@ window.addEventListener('keydown', (e) => {
     if (e.key === 'Tab' && selectedNode) {
         e.preventDefault(); // Prevent default tab behavior
         const parentNode = selectedNode;
+        let newX = parentNode.x + NODE_RADIUS * 2.5;
+        let newY = parentNode.y;
+
+        // Adjust position to avoid overlap
+        let attempts = 0;
+        const maxAttempts = 100; // Prevent infinite loops
+        const shiftAmount = NODE_RADIUS * 1.5; // Amount to shift if collision occurs
+
+        while (checkCollision(newX, newY, NODE_RADIUS) && attempts < maxAttempts) {
+            newY += shiftAmount;
+            attempts++;
+        }
+
         const newNode = {
-            x: parentNode.x + NODE_RADIUS * 2.5,
-            y: parentNode.y,
+            x: newX,
+            y: newY,
             text: 'Child Node',
             type: 'child',
             shape: 'square',
