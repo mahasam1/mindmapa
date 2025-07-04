@@ -417,23 +417,51 @@ window.addEventListener('keydown', (e) => {
 
     if (e.key === 'Delete' && selectedNode) {
         e.preventDefault();
-        const deletedNodeIndex = nodes.indexOf(selectedNode);
-        if (deletedNodeIndex !== -1) {
-            // Remove node
-            nodes.splice(deletedNodeIndex, 1);
+        const nodesToDelete = new Set();
+        const queue = [selectedNode];
+        nodesToDelete.add(selectedNode);
 
-            // Update connections
-            connections = connections.filter(conn => 
-                conn[0] !== deletedNodeIndex && conn[1] !== deletedNodeIndex
-            ).map(conn => [
-                conn[0] > deletedNodeIndex ? conn[0] - 1 : conn[0],
-                conn[1] > deletedNodeIndex ? conn[1] - 1 : conn[1]
-            ]);
-
-            selectedNode = null;
-            draw();
-            saveState();
+        // Find all descendants
+        let head = 0;
+        while(head < queue.length) {
+            const currentNode = queue[head++];
+            const currentNodeIndex = nodes.indexOf(currentNode);
+            
+            // Find children of the current node
+            const childConnections = connections.filter(c => c[0] === currentNodeIndex);
+            childConnections.forEach(conn => {
+                const childNode = nodes[conn[1]];
+                if (childNode && !nodesToDelete.has(childNode)) {
+                    nodesToDelete.add(childNode);
+                    queue.push(childNode);
+                }
+            });
         }
+
+        // Filter out deleted nodes and update connections
+        const newNodes = [];
+        const oldIndexToNewIndexMap = new Map();
+        let newIndex = 0;
+        for (let i = 0; i < nodes.length; i++) {
+            if (!nodesToDelete.has(nodes[i])) {
+                newNodes.push(nodes[i]);
+                oldIndexToNewIndexMap.set(i, newIndex++);
+            }
+        }
+
+        const newConnections = [];
+        connections.forEach(conn => {
+            const [startIdx, endIdx] = conn;
+            if (!nodesToDelete.has(nodes[startIdx]) && !nodesToDelete.has(nodes[endIdx])) {
+                newConnections.push([oldIndexToNewIndexMap.get(startIdx), oldIndexToNewIndexMap.get(endIdx)]);
+            }
+        });
+
+        nodes = newNodes;
+        connections = newConnections;
+        selectedNode = null;
+        draw();
+        saveState();
         return; // Stop further execution
     }
 
