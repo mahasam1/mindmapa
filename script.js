@@ -50,10 +50,18 @@ function drawNode(node) {
     const screenPos = worldToScreen(node.x, node.y);
     const radius = NODE_RADIUS * camera.zoom;
 
+    if (node === selectedNode) {
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#8A2BE2';
+    } else {
+        ctx.shadowBlur = 0;
+    }
+
     ctx.fillStyle = node === selectedNode ? NODE_SELECTED_COLOR : NODE_COLOR;
     ctx.beginPath();
     ctx.arc(screenPos.x, screenPos.y, radius, 0, Math.PI * 2);
     ctx.fill();
+    ctx.shadowBlur = 0; // Reset shadow for other elements
     ctx.strokeStyle = '#505050';
     ctx.stroke();
 
