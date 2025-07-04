@@ -15,6 +15,9 @@ let lastMousePos = { x: 0, y: 0 };
 let drawingConnection = false;
 let connectionStartNode = null;
 let textEditing = false;
+let isFirstKeyAfterSelection = false; // New flag for text editing
+let cursorBlinkInterval = null;
+let cursorVisible = true;
 
 const NODE_RADIUS = 60;
 const NODE_COLOR = '#5c6bc0'; // Muted Indigo for father nodes
@@ -173,6 +176,22 @@ function drawNode(node) {
             ctx.fillText(line, screenPos.x, yOffset);
             yOffset += fontSize * 1.2;
         });
+
+        // Draw blinking cursor if text editing is active and cursor is visible
+        if (node === selectedNode && textEditing && cursorVisible) {
+            const lastLine = lines[lines.length - 1] || '';
+            const lastLineWidth = ctx.measureText(lastLine).width;
+            const cursorX = screenPos.x + lastLineWidth / 2 + 2; // Position after the last character
+            const cursorY = yOffset - fontSize * 1.2; // Top of the last line
+            const cursorHeight = fontSize;
+
+            ctx.strokeStyle = TEXT_COLOR;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(cursorX, cursorY);
+            ctx.lineTo(cursorX, cursorY + cursorHeight);
+            ctx.stroke();
+        }
     }
 
     // Draw link icon if URL exists
@@ -239,6 +258,7 @@ canvas.addEventListener('mousedown', (e) => {
                 selectedNode = node;
                 draggingNode = node;
                 textEditing = false;
+                isFirstKeyAfterSelection = true; // Set flag when node is selected
 
                 // Check if Ctrl/Cmd is pressed and node has a URL
                 if ((e.ctrlKey || e.metaKey) && node.url) {
@@ -586,8 +606,26 @@ window.addEventListener('keydown', (e) => {
         }
         draw();
     } else if (selectedNode && e.key.length === 1 && !(e.ctrlKey || e.metaKey)) { // Start text editing if a character key is pressed on a selected node and Ctrl/Cmd is not pressed
-        selectedNode.text = e.key;
+        if (isFirstKeyAfterSelection) {
+            selectedNode.text = ''; // Clear text on first key press
+            isFirstKeyAfterSelection = false;
+        }
+        selectedNode.text += e.key;
         textEditing = true;
+        draw();
+    }
+
+    // Start/Stop cursor blinking
+    if (textEditing && !cursorBlinkInterval) {
+        cursorVisible = true;
+        cursorBlinkInterval = setInterval(() => {
+            cursorVisible = !cursorVisible;
+            draw();
+        }, 500);
+    } else if (!textEditing && cursorBlinkInterval) {
+        clearInterval(cursorBlinkInterval);
+        cursorBlinkInterval = null;
+        cursorVisible = true; // Ensure cursor is visible when not editing
         draw();
     }
 
