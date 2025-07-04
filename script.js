@@ -92,6 +92,9 @@ function wrapText(context, text, maxWidth) {
     return lines;
 }
 
+const linkIcon = new Image();
+linkIcon.src = 'icons/link-8564589_640.png';
+
 function drawNode(node) {
     const screenPos = worldToScreen(node.x, node.y);
     let currentRadius = NODE_RADIUS; // Start with default radius
@@ -183,6 +186,27 @@ function drawNode(node) {
             yOffset += fontSize * 1.2;
         });
     }
+
+    // Draw link icon if URL exists
+    if (node.url && linkIcon.complete) {
+        const iconSize = 20 * camera.zoom; // Adjust size as needed
+        const iconX = screenPos.x + size - iconSize / 2; // Position to the right of the node
+        const iconY = screenPos.y - size + iconSize / 2; // Position to the top of the node
+
+        ctx.drawImage(linkIcon, iconX - iconSize / 2, iconY - iconSize / 2, iconSize, iconSize);
+
+        // Store icon bounds for click detection (absolute screen coordinates)
+        node.urlIconBounds = {
+            x: iconX - iconSize / 2,
+            y: iconY - iconSize / 2,
+            width: iconSize,
+            height: iconSize
+        };
+    } else {
+        node.urlIconBounds = null; // Clear bounds if no URL
+    }
+
+    
 }
 
 function drawConnections() {
@@ -229,6 +253,13 @@ canvas.addEventListener('mousedown', (e) => {
                 selectedNode = node;
                 draggingNode = node;
                 textEditing = false;
+
+                // Check if Ctrl/Cmd is pressed and node has a URL
+                if ((e.ctrlKey || e.metaKey) && node.url) {
+                    window.open(node.url, '_blank');
+                    return; // Prevent dragging if opening URL
+                }
+
             } else if (e.button === 2) { // Right click
                 drawingConnection = true;
                 connectionStartNode = node;
@@ -312,7 +343,8 @@ canvas.addEventListener('dblclick', (e) => {
             text: 'Father Node',
             type: 'father',
             shape: 'circle',
-            color: NODE_COLOR
+            color: NODE_COLOR,
+            url: null
         });
         selectedNode = nodes[nodes.length - 1];
         textEditing = true;
@@ -354,7 +386,8 @@ window.addEventListener('keydown', (e) => {
             text: 'Child Node',
             type: 'child',
             shape: 'square',
-            color: '#8BC34A' // Green
+            color: '#8BC34A', // Green
+            url: null
         };
         nodes.push(newNode);
         const parentIndex = nodes.indexOf(parentNode);
@@ -381,7 +414,8 @@ window.addEventListener('keydown', (e) => {
                 text: 'Child Node',
                 type: 'child',
                 shape: 'square',
-                color: '#8BC34A' // Green
+                color: '#8BC34A', // Green
+                url: null
             };
             nodes.push(newNode);
             const parentIndex = nodes.indexOf(parentNode);
@@ -399,14 +433,35 @@ window.addEventListener('keydown', (e) => {
     if (selectedNode && textEditing) {
         if (e.key === 'Backspace') {
             selectedNode.text = selectedNode.text.slice(0, -1);
-        } else if (e.key.length === 1) { // Only append single character keys
+        } else if (e.key.length === 1 && !(e.ctrlKey || e.metaKey)) { // Only append single character keys if Ctrl/Cmd is not pressed
             selectedNode.text += e.key;
         }
         draw();
-    } else if (selectedNode && e.key.length === 1) { // Start text editing if a character key is pressed on a selected node
+    } else if (selectedNode && e.key.length === 1 && !(e.ctrlKey || e.metaKey)) { // Start text editing if a character key is pressed on a selected node and Ctrl/Cmd is not pressed
         selectedNode.text = e.key;
         textEditing = true;
         draw();
+    }
+
+    });
+
+function isValidUrl(string) {
+    try {
+        new URL(string);
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+window.addEventListener('paste', (e) => {
+    if (selectedNode) {
+        const clipboardText = e.clipboardData.getData('text');
+        if (isValidUrl(clipboardText)) {
+            selectedNode.url = clipboardText;
+            draw();
+            saveState();
+        }
     }
 });
 
@@ -424,7 +479,7 @@ function saveState() {
 function loadState() {
     const state = JSON.parse(localStorage.getItem('mindmap'));
     if (state) {
-        nodes = state.nodes || [];
+        nodes = state.nodes.map(node => ({ ...node, url: node.url || null })) || [];
         connections = state.connections || [];
         camera = state.camera || { x: 0, y: 0, zoom: 1 };
     }
