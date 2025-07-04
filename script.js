@@ -492,10 +492,23 @@ window.addEventListener('keydown', (e) => {
         // Create sibling node logic
         const parentConnection = connections.find(c => nodes[c[1]] === selectedNode);
         if (parentConnection) {
+            let newX = selectedNode.x;
+            let newY = selectedNode.y + NODE_RADIUS * 1.5;
+
+            // Adjust position to avoid overlap
+            let attempts = 0;
+            const maxAttempts = 100; // Prevent infinite loops
+            const shiftAmount = NODE_RADIUS * 1.5; // Amount to shift if collision occurs
+
+            while (checkCollision(newX, newY, NODE_RADIUS) && attempts < maxAttempts) {
+                newY += shiftAmount;
+                attempts++;
+            }
+
             const parentNode = nodes[parentConnection[0]];
             const newNode = {
-                x: selectedNode.x,
-                y: selectedNode.y + NODE_RADIUS * 1.5,
+                x: newX,
+                y: newY,
                 text: 'Child Node',
                 type: 'child',
                 shape: 'square',
