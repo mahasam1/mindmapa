@@ -203,6 +203,25 @@ canvas.addEventListener('dblclick', (e) => {
 });
 
 window.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab' && selectedNode) {
+        e.preventDefault(); // Prevent default tab behavior
+        const parentNode = selectedNode;
+        const newNode = {
+            x: parentNode.x + NODE_RADIUS * 2.5,
+            y: parentNode.y,
+            text: 'New Node'
+        };
+        nodes.push(newNode);
+        const parentIndex = nodes.indexOf(parentNode);
+        const newIndex = nodes.length - 1;
+        connections.push([parentIndex, newIndex]);
+        selectedNode = newNode;
+        textEditing = true;
+        draw();
+        saveState();
+        return; // Stop further execution
+    }
+
     if (textEditing && selectedNode) {
         if (e.key === 'Enter') {
             textEditing = false;
