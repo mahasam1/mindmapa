@@ -128,18 +128,8 @@ function drawNode(node) {
         ctx.shadowBlur = 0;
     }
 
-    // Determine fill color based on node type and level
+    // Determine fill color based on node type
     let fillColor = node.color;
-    if (node.type === 'child' || node.type === 'grandchild') {
-        const level = getNodeLevel(node);
-        if (level === 1) { // Direct child
-            fillColor = '#8BC34A'; // Green
-        } else if (level > 1) { // Grandchild or deeper
-            // Lighter green based on level
-            const lightness = 70 + (level - 2) * 5; // Adjust as needed
-            fillColor = `hsl(90, 60%, ${lightness}%)`;
-        }
-    }
 
     ctx.fillStyle = node === selectedNode ? NODE_SELECTED_COLOR : fillColor;
 
@@ -498,7 +488,7 @@ window.addEventListener('keydown', (e) => {
             text: 'Child Node',
             type: 'child',
             shape: 'square',
-            color: '#8BC34A', // Green
+            color: '#FF69B4', // Pink
             url: null
         };
         nodes.push(newNode);
@@ -526,7 +516,7 @@ window.addEventListener('keydown', (e) => {
                 text: 'Child Node',
                 type: 'child',
                 shape: 'square',
-                color: '#8BC34A', // Green
+                color: '#FF69B4', // Pink
                 url: null
             };
             nodes.push(newNode);
