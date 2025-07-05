@@ -625,7 +625,10 @@ window.addEventListener('keydown', (e) => {
                 type: 'child',
                 shape: 'square',
                 color: '#FF69B4', // Pink
-                url: null
+                url: null,
+                radius: NODE_RADIUS, // Add radius property
+                shape: 'square', // Added shape property
+                folded: false // New property for folding/unfolding
             };
             nodes.push(newNode);
             const parentIndex = nodes.indexOf(parentNode);
