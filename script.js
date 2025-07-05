@@ -216,6 +216,22 @@ function drawNode(node) {
     } else {
         node.urlIconBounds = null; // Clear bounds if no URL
     }
+
+    // Draw indicator for folded nodes with children
+    if (node.folded && hasChildren(node)) {
+        const indicatorSize = 10 * camera.zoom;
+        const indicatorX = screenPos.x + size - indicatorSize / 2; // Position to the right of the node
+        const indicatorY = screenPos.y + size - indicatorSize / 2; // Position to the bottom right of the node
+
+        ctx.fillStyle = '#555555'; // Dark grey square
+        ctx.fillRect(indicatorX - indicatorSize / 2, indicatorY - indicatorSize / 2, indicatorSize, indicatorSize);
+    }
+}
+
+// Helper function to check if a node has children
+function hasChildren(node) {
+    const nodeIndex = nodes.indexOf(node);
+    return connections.some(c => c[0] === nodeIndex);
 }
 
 function drawConnections() {
