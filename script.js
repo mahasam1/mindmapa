@@ -21,6 +21,10 @@ let isFirstKeyAfterSelection = false; // New flag for text editing
 let cursorBlinkInterval = null;
 let cursorVisible = true;
 
+const MAX_HISTORY_SIZE = 10; // Store last 10 actions
+let history = [];
+let historyPointer = -1;
+
 const NODE_RADIUS = 60; // Base radius for new nodes
 const MIN_NODE_RADIUS = 30;
 const MAX_NODE_RADIUS = 120;
@@ -569,7 +573,7 @@ window.addEventListener('keydown', (e) => {
             color: NODE_COLOR
         });
         draw();
-        saveState();
+        saveState(); // Save state after clearing and re-initializing
         return; // Stop further execution
     }
 
@@ -760,6 +764,18 @@ window.addEventListener('keydown', (e) => {
         return;
     }
 
+    if (e.ctrlKey && e.key === 'z') {
+        e.preventDefault();
+        undo();
+        return;
+    }
+
+    if (e.ctrlKey && e.key === 'y') {
+        e.preventDefault();
+        redo();
+        return;
+    }
+
     // General text editing logic for selected node
     if (selectedNode && textEditing) {
         if (e.key === 'Backspace') {
@@ -790,6 +806,7 @@ window.addEventListener('keydown', (e) => {
         cursorBlinkInterval = null;
         cursorVisible = true; // Ensure cursor is visible when not editing
         draw();
+        saveState(); // Save state when text editing stops
     }
 
     });
@@ -859,6 +876,93 @@ function saveMap() {
     URL.revokeObjectURL(url);
 }
 
+function saveState() {
+    const state = {
+        nodes: nodes.map(node => ({
+            ...node,
+            image: undefined // Don't save the Image object directly
+        })),
+        connections: connections,
+        camera: camera
+    };
+    localStorage.setItem('mindmap', JSON.stringify(state));
+
+    // Save to history stack
+    if (historyPointer < history.length - 1) {
+        history = history.slice(0, historyPointer + 1);
+    }
+    history.push(JSON.parse(JSON.stringify(state))); // Deep copy
+    if (history.length > MAX_HISTORY_SIZE) {
+        history.shift();
+    } else {
+        historyPointer++;
+    }
+}
+
+function loadStateFromHistory(index) {
+    if (index >= 0 && index < history.length) {
+        const state = history[index];
+        let imagesToLoad = 0;
+        let imagesLoaded = 0;
+
+        const newNodes = state.nodes.map(node => {
+            const newNode = {
+                ...node,
+                image: null, // Initialize image to null, will be loaded asynchronously
+            };
+            if (node.imageDataURL) {
+                imagesToLoad++;
+                const img = new Image();
+                img.src = node.imageDataURL;
+                img.onload = () => {
+                    newNode.image = img;
+                    imagesLoaded++;
+                    if (imagesLoaded === imagesToLoad) {
+                        // All images for this state are loaded, now draw
+                        draw();
+                    }
+                };
+                img.onerror = () => {
+                    console.error("Error loading image for node:", newNode);
+                    newNode.image = null;
+                    newNode.imageDataURL = null;
+                    imagesLoaded++; // Still count as loaded even if error
+                    if (imagesLoaded === imagesToLoad) {
+                        draw();
+                    }
+                };
+            }
+            return newNode;
+        });
+
+        nodes = newNodes; // Assign newNodes to global nodes array
+        connections = state.connections;
+        camera = state.camera;
+        selectedNode = null; // Clear selected node on undo/redo
+
+        // If no images to load, or all images are already loaded (e.g., from cache), draw immediately
+        if (imagesToLoad === 0 || imagesLoaded === imagesToLoad) {
+            draw();
+        }
+
+        localStorage.setItem('mindmap', JSON.stringify(state)); // Save current state to local storage after loading from history
+    }
+}
+
+function undo() {
+    if (historyPointer > 0) {
+        historyPointer--;
+        loadStateFromHistory(historyPointer);
+    }
+}
+
+function redo() {
+    if (historyPointer < history.length - 1) {
+        historyPointer++;
+        loadStateFromHistory(historyPointer);
+    }
+}
+
 function loadMap() {
     const input = document.createElement('input');
     input.type = 'file';
@@ -873,8 +977,11 @@ function loadMap() {
                     nodes = loadedData.nodes || [];
                     connections = loadedData.connections || [];
                     camera = loadedData.camera || { x: 0, y: 0, zoom: 1 };
+                    // Clear history when loading a new map
+                    history = [];
+                    historyPointer = -1;
+                    saveState(); // Save the loaded state to history and local storage
                     draw();
-                    saveState(); // Save to local storage after loading
                 } catch (error) {
                     console.error('Error parsing mind map file:', error);
                     alert('Error loading mind map: Invalid file format.');
@@ -905,21 +1012,6 @@ helpToggleButton.addEventListener('click', () => {
 });
 
 canvas.addEventListener('contextmenu', e => e.preventDefault());
-
-function saveState() {
-    const state = {
-        nodes: nodes,
-        connections: connections,
-        camera: camera
-    };
-    localStorage.setItem('mindmap', JSON.stringify(state, (key, value) => {
-        // Don't save the Image object itself, only the Data URL
-        if (key === 'image' && value instanceof Image) {
-            return undefined; 
-        }
-        return value;
-    }));
-}
 
 function loadState() {
     const state = JSON.parse(localStorage.getItem('mindmap'));
@@ -973,6 +1065,7 @@ function loadState() {
             imageScale: 1.0
         });
     }
+    saveState(); // Save initial state to history
 }
 
 loadState();
