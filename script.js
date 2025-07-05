@@ -21,7 +21,9 @@ let isFirstKeyAfterSelection = false; // New flag for text editing
 let cursorBlinkInterval = null;
 let cursorVisible = true;
 
-const NODE_RADIUS = 60;
+const NODE_RADIUS = 60; // Base radius for new nodes
+const MIN_NODE_RADIUS = 30;
+const MAX_NODE_RADIUS = 120;
 const NODE_COLOR = '#5c6bc0'; // Muted Indigo for father nodes
 const NODE_SELECTED_COLOR = '#ffca28'; // Soft gold for selected nodes
 const TEXT_COLOR = '#333333'; // Dark grey for text
@@ -101,7 +103,7 @@ linkIcon.src = 'icons/link-8564589_640.png';
 
 function drawNode(node) {
     const screenPos = worldToScreen(node.x, node.y);
-    let currentRadius = NODE_RADIUS; // Start with default radius
+    let currentRadius = node.radius; // Use node's specific radius
 
     // Temporarily set font for initial text measurement
     ctx.font = `${16 * camera.zoom}px Inter`; // Use Inter font
@@ -220,7 +222,7 @@ function drawConnections() {
     ctx.strokeStyle = LINE_COLOR;
     ctx.lineWidth = 2 * camera.zoom;
     connections.forEach(([startIdx, endIdx]) => {
-        if (nodes[startIdx] && nodes[endIdx]) {
+        if (nodes[startIdx] && nodes[endIdx] && isNodeVisible(nodes[startIdx]) && isNodeVisible(nodes[endIdx])) {
             const startPos = worldToScreen(nodes[startIdx].x, nodes[startIdx].y);
             const endPos = worldToScreen(nodes[endIdx].x, nodes[endIdx].y);
             ctx.beginPath();
@@ -241,8 +243,12 @@ function drawConnections() {
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawConnections();
-    nodes.forEach(drawNode);
+    drawConnections(); // Draw connections first
+    nodes.forEach(node => {
+        if (isNodeVisible(node)) {
+            drawNode(node);
+        }
+    });
 }
 
 canvas.addEventListener('mousedown', (e) => {
@@ -421,6 +427,25 @@ function isDescendant(potentialParent, potentialChild) {
     return false; // potentialChild is not a descendant
 }
 
+// New helper function to check if a node is visible (not part of a folded subtree)
+function isNodeVisible(node) {
+    if (!node) return false;
+    let currentNode = node;
+    while (currentNode) {
+        const parentConnection = connections.find(c => nodes[c[1]] === currentNode);
+        if (parentConnection) {
+            const parentNode = nodes[parentConnection[0]];
+            if (parentNode && parentNode.folded) {
+                return false; // Parent is folded, so this node is not visible
+            }
+            currentNode = parentNode;
+        } else {
+            break; // No parent, reached the root of a subtree
+        }
+    }
+    return true; // Node is visible
+}
+
 function getAllDescendants(node) {
     const descendants = new Set();
     const queue = [node];
@@ -451,8 +476,8 @@ function checkCollision(newNodeX, newNodeY, newNodeRadius) {
         const dy = newNodeY - existingNode.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        // Sum of radii (assuming all nodes have NODE_RADIUS for collision check)
-        const sumOfRadii = newNodeRadius + NODE_RADIUS; // Using NODE_RADIUS for simplicity in collision check
+        // Sum of radii
+        const sumOfRadii = newNodeRadius + existingNode.radius; 
 
         if (distance < sumOfRadii) {
             return true; // Collision detected
@@ -483,7 +508,9 @@ canvas.addEventListener('dblclick', (e) => {
             type: 'father',
             shape: 'circle',
             color: NODE_COLOR,
-            url: null
+            radius: NODE_RADIUS, // Add radius property
+            url: null,
+            folded: false // New property for folding/unfolding
         });
         selectedNode = nodes[nodes.length - 1];
         textEditing = true;
@@ -539,7 +566,9 @@ window.addEventListener('keydown', (e) => {
             type: 'child',
             shape: 'square',
             color: '#FF69B4', // Pink
-            url: null
+            radius: NODE_RADIUS, // Add radius property
+            url: null,
+            folded: false // New property for folding/unfolding
         };
         nodes.push(newNode);
         const parentIndex = nodes.indexOf(parentNode);
@@ -642,6 +671,30 @@ window.addEventListener('keydown', (e) => {
         draw();
         saveState();
         return; // Stop further execution
+    }
+
+    if (selectedNode && (e.key === '+' || e.key === '=')) {
+        e.preventDefault();
+        selectedNode.radius = Math.min(selectedNode.radius + 5, MAX_NODE_RADIUS);
+        draw();
+        saveState();
+        return;
+    }
+
+    if (selectedNode && e.key === '-') {
+        e.preventDefault();
+        selectedNode.radius = Math.max(selectedNode.radius - 5, MIN_NODE_RADIUS);
+        draw();
+        saveState();
+        return;
+    }
+
+    if (e.key === '\\' && selectedNode) {
+        e.preventDefault();
+        selectedNode.folded = !selectedNode.folded;
+        draw();
+        saveState();
+        return;
     }
 
     // General text editing logic for selected node
@@ -775,7 +828,7 @@ function saveState() {
 function loadState() {
     const state = JSON.parse(localStorage.getItem('mindmap'));
     if (state) {
-        nodes = state.nodes.map(node => ({ ...node, url: node.url || null })) || [];
+        nodes = state.nodes.map(node => ({ ...node, url: node.url || null, radius: node.radius || NODE_RADIUS, folded: node.folded || false })) || [];
         connections = state.connections || [];
         camera = state.camera || { x: 0, y: 0, zoom: 1 };
     }
