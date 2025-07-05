@@ -574,6 +574,7 @@ window.addEventListener('keydown', (e) => {
         });
         draw();
         saveState(); // Save state after clearing and re-initializing
+        location.reload(); // Auto-refresh the page
         return; // Stop further execution
     }
 
@@ -982,6 +983,7 @@ function loadMap() {
                     historyPointer = -1;
                     saveState(); // Save the loaded state to history and local storage
                     draw();
+                    location.reload(); // Auto-refresh the page
                 } catch (error) {
                     console.error('Error parsing mind map file:', error);
                     alert('Error loading mind map: Invalid file format.');
@@ -1065,8 +1067,8 @@ function loadState() {
             imageScale: 1.0
         });
     }
-    saveState(); // Save initial state to history
 }
 
 loadState();
+saveState(); // Save initial state to history after loading
 draw();
