@@ -217,6 +217,17 @@ function drawNode(node) {
         node.urlIconBounds = null; // Clear bounds if no URL
     }
 
+    // Draw attached image if exists
+    if (node.image && node.image instanceof Image) {
+        const img = node.image;
+        const imgWidth = img.width * node.imageScale * camera.zoom;
+        const imgHeight = img.height * node.imageScale * camera.zoom;
+        const imageOffsetX = imgWidth / 2;
+        // Position image: top edge 5px above node's top edge
+        const imageTopY = screenPos.y - size - imgHeight - (5 * camera.zoom);
+        ctx.drawImage(img, screenPos.x - imageOffsetX, imageTopY, imgWidth, imgHeight);
+    }
+
     // Draw indicator for folded nodes with children
     if (node.folded && hasChildren(node)) {
         const indicatorSize = 10 * camera.zoom;
@@ -526,7 +537,10 @@ canvas.addEventListener('dblclick', (e) => {
             color: NODE_COLOR,
             radius: NODE_RADIUS, // Add radius property
             url: null,
-            folded: false // New property for folding/unfolding
+            folded: false, // New property for folding/unfolding
+            image: null, // Will store the actual Image object
+            imageDataURL: null, // Will store the Data URL string for saving
+            imageScale: 1.0 // New property for image scaling
         });
         selectedNode = nodes[nodes.length - 1];
         textEditing = true;
@@ -584,7 +598,10 @@ window.addEventListener('keydown', (e) => {
             color: '#FF69B4', // Pink
             radius: NODE_RADIUS, // Add radius property
             url: null,
-            folded: false // New property for folding/unfolding
+            folded: false, // New property for folding/unfolding
+            image: null, // Will store the actual Image object
+            imageDataURL: null, // Will store the Data URL string for saving
+            imageScale: 1.0 // New property for image scaling
         };
         nodes.push(newNode);
         const parentIndex = nodes.indexOf(parentNode);
@@ -642,6 +659,17 @@ window.addEventListener('keydown', (e) => {
         return; // Stop further execution
     }
 
+    if (e.key === 'Delete' && selectedNode && e.ctrlKey) {
+        e.preventDefault();
+        if (selectedNode.image || selectedNode.imageDataURL) {
+            selectedNode.image = null;
+            selectedNode.imageDataURL = null;
+            draw();
+            saveState();
+        }
+        return;
+    }
+
     if (e.key === 'Delete' && selectedNode) {
         e.preventDefault();
         const nodesToDelete = new Set();
@@ -690,6 +718,22 @@ window.addEventListener('keydown', (e) => {
         draw();
         saveState();
         return; // Stop further execution
+    }
+
+    if (selectedNode && (e.key === '+' || e.key === '=') && e.ctrlKey) {
+        e.preventDefault();
+        selectedNode.imageScale = Math.min(selectedNode.imageScale + 0.1, 3.0); // Increase image size
+        draw();
+        saveState();
+        return;
+    }
+
+    if (selectedNode && e.key === '-' && e.ctrlKey) {
+        e.preventDefault();
+        selectedNode.imageScale = Math.max(selectedNode.imageScale - 0.1, 0.1); // Decrease image size
+        draw();
+        saveState();
+        return;
     }
 
     if (selectedNode && (e.key === '+' || e.key === '=')) {
@@ -762,6 +806,33 @@ function isValidUrl(string) {
 window.addEventListener('paste', (e) => {
     if (selectedNode) {
         const clipboardText = e.clipboardData.getData('text');
+        const items = e.clipboardData.items;
+
+        // Check for image data
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                const blob = items[i].getAsFile();
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        // Calculate initial imageScale to fit within node radius
+                        const nodeDiameter = selectedNode.radius * 2;
+                        const scale = nodeDiameter / Math.max(img.width, img.height);
+                        selectedNode.imageScale = scale; // Fit within the node
+                        selectedNode.image = img; // Store the actual Image object
+                        selectedNode.imageDataURL = event.target.result; // Store Data URL for saving
+                        draw();
+                        saveState();
+                    };
+                };
+                reader.readAsDataURL(blob);
+                return; // Image found, stop processing
+            }
+        }
+
+        // If no image, check for URL
         if (isValidUrl(clipboardText)) {
             selectedNode.url = clipboardText;
             draw();
@@ -841,13 +912,46 @@ function saveState() {
         connections: connections,
         camera: camera
     };
-    localStorage.setItem('mindmap', JSON.stringify(state));
+    localStorage.setItem('mindmap', JSON.stringify(state, (key, value) => {
+        // Don't save the Image object itself, only the Data URL
+        if (key === 'image' && value instanceof Image) {
+            return undefined; 
+        }
+        return value;
+    }));
 }
 
 function loadState() {
     const state = JSON.parse(localStorage.getItem('mindmap'));
     if (state) {
-        nodes = state.nodes.map(node => ({ ...node, url: node.url || null, radius: node.radius || NODE_RADIUS, folded: node.folded || false })) || [];
+        nodes = state.nodes.map(node => {
+            const newNode = {
+                ...node,
+                url: node.url || null,
+                radius: node.radius || NODE_RADIUS,
+                folded: node.folded || false,
+                image: null, // Initialize image to null, will be loaded asynchronously
+                imageDataURL: node.imageDataURL || null, // Load the Data URL string
+                imageScale: node.imageScale || 1.0
+            };
+
+            if (newNode.imageDataURL) {
+                const img = new Image();
+                img.src = newNode.imageDataURL;
+                img.onload = () => {
+                    newNode.image = img; // Store the loaded Image object
+                    draw(); // Redraw after image loads
+                };
+                // Handle potential errors during image loading
+                img.onerror = () => {
+                    console.error("Error loading image for node:", newNode);
+                    newNode.image = null; // Clear image if loading fails
+                    newNode.imageDataURL = null;
+                    draw();
+                };
+            }
+            return newNode;
+        }) || [];
         connections = state.connections || [];
         camera = state.camera || { x: 0, y: 0, zoom: 1 };
     }
@@ -860,7 +964,13 @@ function loadState() {
             text: 'Father Node',
             type: 'father',
             shape: 'circle',
-            color: NODE_COLOR
+            color: NODE_COLOR,
+            radius: NODE_RADIUS,
+            url: null,
+            folded: false,
+            image: null,
+            imageDataURL: null,
+            imageScale: 1.0
         });
     }
 }
