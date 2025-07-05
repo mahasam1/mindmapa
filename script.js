@@ -600,7 +600,7 @@ window.addEventListener('keydown', (e) => {
             text: 'Child Node',
             type: 'child',
             shape: 'square',
-            color: '#FF69B4', // Pink
+            color: selectedNode.color, // Inherit color from parent
             radius: NODE_RADIUS, // Add radius property
             url: null,
             folded: false, // New property for folding/unfolding
@@ -646,7 +646,7 @@ window.addEventListener('keydown', (e) => {
                 text: 'Child Node',
                 type: 'child',
                 shape: 'square',
-                color: '#FF69B4', // Pink
+                color: selectedNode.color, // Inherit color from parent
                 url: null,
                 radius: NODE_RADIUS, // Add radius property
                 shape: 'square', // Added shape property
@@ -774,6 +774,14 @@ window.addEventListener('keydown', (e) => {
     if (e.ctrlKey && e.key === 'y') {
         e.preventDefault();
         redo();
+        return;
+    }
+
+    if (e.ctrlKey && e.shiftKey && selectedNode) {
+        e.preventDefault();
+        const colorPicker = document.getElementById('color-picker');
+        colorPicker.value = selectedNode.color;
+        colorPicker.click();
         return;
     }
 
@@ -1002,7 +1010,30 @@ document.getElementById('load-button').addEventListener('click', loadMap);
 // Help text toggle
 const helpText = document.getElementById('help-text');
 const helpToggleButton = document.getElementById('help-toggle-button');
+const colorPicker = document.getElementById('color-picker');
 let helpVisible = true; // Start visible
+
+colorPicker.addEventListener('change', (e) => {
+    if (selectedNode) {
+        const newColor = e.target.value;
+        selectedNode.color = newColor;
+        updateNodeAndChildrenColor(selectedNode, newColor);
+        draw();
+        saveState();
+    }
+});
+
+function updateNodeAndChildrenColor(node, newColor) {
+    node.color = newColor;
+    const nodeIndex = nodes.indexOf(node);
+    const childrenConnections = connections.filter(c => c[0] === nodeIndex);
+    childrenConnections.forEach(conn => {
+        const childNode = nodes[conn[1]];
+        if (childNode) {
+            updateNodeAndChildrenColor(childNode, newColor);
+        }
+    });
+}
 
 helpToggleButton.addEventListener('click', () => {
     helpVisible = !helpVisible;
