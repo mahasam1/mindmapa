@@ -29,7 +29,7 @@ const NODE_RADIUS = 60; // Base radius for new nodes
 const MIN_NODE_RADIUS = 30;
 const MAX_NODE_RADIUS = 120;
 const NODE_COLOR = '#5c6bc0'; // Muted Indigo for father nodes
-const NODE_SELECTED_COLOR = '#ffca28'; // Soft gold for selected nodes
+const NODE_SELECTED_COLOR = '#ffca28'; // This constant will no longer be used for fill, but kept for reference if needed elsewhere
 const TEXT_COLOR = '#333333'; // Dark grey for text
 const LINE_COLOR = '#757575'; // Slightly darker grey for lines
 
@@ -132,8 +132,8 @@ function drawNode(node) {
     const size = currentRadius * camera.zoom; // Final size for drawing
 
     if (node === selectedNode) {
-        ctx.shadowBlur = 15; // Softer glow
-        ctx.shadowColor = 'rgba(255, 202, 40, 0.8)'; // Soft gold glow
+        ctx.shadowBlur = 25; // Increased blur for a stronger glow
+        ctx.shadowColor = 'rgba(0, 255, 0, 0.8)'; // Green glow
     } else {
         ctx.shadowBlur = 0;
     }
@@ -141,7 +141,7 @@ function drawNode(node) {
     // Determine fill color based on node type
     let fillColor = node.color;
 
-    ctx.fillStyle = node === selectedNode ? NODE_SELECTED_COLOR : fillColor;
+    ctx.fillStyle = fillColor; // Always use the node's actual color for fill
 
     const borderRadius = 10; // Radius for rounded corners
 
