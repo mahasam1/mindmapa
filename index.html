@@ -11,32 +11,10 @@
     <div class="button-container">
         <button id="save-button">Save Map</button>
         <button id="load-button">Load Map</button>
+        <button id="help-button">Help</button>
     </div>
     <p style="position: absolute; top: 15px; right: 15px; font-size: 14px; color: #555;">Author: Dima Chulkin</p>
     <canvas id="mindmap-canvas"></canvas>
-    <div id="help-text">
-        <p><strong>Controls:</strong></p>
-        <ul>
-            <li><strong>Double-click:</strong> Create a new node.</li>
-            <li><strong>Drag node:</strong> Move a node.</li>
-            <li><strong>Click node:</strong> Select a node.</li>
-            <li><strong>Type:</strong> Edit selected node's text.</li>
-            <li><strong>Right-click & drag:</strong> Connect nodes.</li>
-            <li><strong>Mouse wheel:</b> Zoom in/out.</li>
-            <li><strong>Middle-click & drag:</strong> Pan the canvas.</li>
-            <li><strong>ESC:</strong> Clear all nodes and reset.</li>
-            <li><strong>DEL:</strong> Delete selected node and its children.</li>
-            <li><strong>+:</strong> Increase size of selected node.</li>
-            <li><strong>-:</strong> Decrease size of selected node.</li>
-            <li><strong>\:</strong> Toggle fold/unfold children of selected node.</li>
-            <li><strong>Ctrl+V (on selected node):</strong> Attach URL from clipboard.</li>
-            <li><strong>Ctrl + Click (on node with URL):</strong> Open URL in new tab.</li>
-            <li><strong>Ctrl+Shift:</strong> Open color picker for selected node and its children.</li>
-            <li><strong>Save Map button:</strong> Save current mind map to a .dimap file.</li>
-            <li><strong>Load Map button:</strong> Load mind map from a .dimap file.</li>
-        </ul>
-    </div>
-    <button id="help-toggle-button">?</button>
     <input type="color" id="color-picker" style="display: none;">
     <script src="script.js"></script>
 </body>

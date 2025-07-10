@@ -570,7 +570,13 @@ window.addEventListener('keydown', (e) => {
             text: 'Father Node',
             type: 'father',
             shape: 'circle',
-            color: NODE_COLOR
+            color: NODE_COLOR,
+            radius: NODE_RADIUS, // Add radius property
+            url: null,
+            folded: false, // New property for folding/unfolding
+            image: null, // Will store the actual Image object
+            imageDataURL: null, // Will store the Data URL string for saving
+            imageScale: 1.0 // New property for image scaling
         });
         draw();
         saveState(); // Save state after clearing and re-initializing
@@ -1006,12 +1012,11 @@ function loadMap() {
 // Attach event listeners to buttons
 document.getElementById('save-button').addEventListener('click', saveMap);
 document.getElementById('load-button').addEventListener('click', loadMap);
+document.getElementById('help-button').addEventListener('click', () => {
+    window.open('help.html', 'Mind Mapper Controls', 'width=800,height=600');
+});
 
-// Help text toggle
-const helpText = document.getElementById('help-text');
-const helpToggleButton = document.getElementById('help-toggle-button');
 const colorPicker = document.getElementById('color-picker');
-let helpVisible = true; // Start visible
 
 colorPicker.addEventListener('change', (e) => {
     if (selectedNode) {
@@ -1034,15 +1039,6 @@ function updateNodeAndChildrenColor(node, newColor) {
         }
     });
 }
-
-helpToggleButton.addEventListener('click', () => {
-    helpVisible = !helpVisible;
-    if (helpVisible) {
-        helpText.classList.remove('hidden');
-    } else {
-        helpText.classList.add('hidden');
-    }
-});
 
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 

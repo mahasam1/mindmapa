@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mind Mapper Controls</title>
+    <link rel="stylesheet" href="help.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <h1>Mind Mapper Controls</h1>
+        <div class="controls-grid">
+            <div class="control-category">
+                <h2>Node Management</h2>
+                <ul>
+                    <li><strong>Double-click:</strong> Create a new node.</li>
+                    <li><strong>Drag & Drop Node:</strong> Move a node. Drop on another node to make it a child.</li>
+                    <li><strong>Click Node:</strong> Select a node.</li>
+                    <li><strong>Type:</strong> Edit selected node's text.</li>
+                    <li><strong>Tab (on selected node):</strong> Create a new child node.</li>
+                    <li><strong>Enter (on selected node):</strong> Create a new sibling node.</li>
+                    <li><strong>DEL:</strong> Delete selected node and its children.</li>
+                     <li><strong>\:</strong> Toggle fold/unfold children of selected node.</li>
+                </ul>
+            </div>
+            <div class="control-category">
+                <h2>Canvas Control</h2>
+                <ul>
+                    <li><strong>Mouse Wheel:</strong> Zoom in/out.</li>
+                    <li><strong>Middle-click & Drag:</strong> Pan the canvas.</li>
+                    <li><strong>Right-click & Drag:</strong> Connect two nodes.</li>
+                    <li><strong>ESC:</strong> Clear all nodes and reset the map.</li>
+                </ul>
+            </div>
+            <div class="control-category">
+                <h2>Node Styling</h2>
+                <ul>
+                    <li><strong>+:</strong> Increase size of selected node.</li>
+                    <li><strong>-:</strong> Decrease size of selected node.</li>
+                    <li><strong>Ctrl+Shift:</strong> Open color picker for selected node and its children.</li>
+                </ul>
+            </div>
+            <div class="control-category">
+                <h2>Attachments</h2>
+                <ul>
+                    <li><strong>Ctrl+V (on selected node):</strong> Paste URL or Image from clipboard.</li>
+                    <li><strong>Ctrl + Click (on node with URL):</strong> Open URL in new tab.</li>
+                    <li><strong>Ctrl+DEL:</strong> Delete image from selected node.</li>
+                    <li><strong>Ctrl + '+':</strong> Increase size of image on selected node.</li>
+                    <li><strong>Ctrl + '-':</strong> Decrease size of image on selected node.</li>
+                </ul>
+            </div>
+             <div class="control-category">
+                <h2>History</h2>
+                <ul>
+                    <li><strong>Ctrl+Z:</strong> Undo last action.</li>
+                    <li><strong>Ctrl+Y:</strong> Redo last action.</li>
+                </ul>
+            </div>
+             <div class="control-category">
+                <h2>Map Management</h2>
+                <ul>
+                    <li><strong>Save Map button:</strong> Save current mind map to a .dimap file.</li>
+                    <li><strong>Load Map button:</strong> Load mind map from a .dimap file.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

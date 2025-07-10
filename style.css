@@ -61,6 +61,17 @@ body, html {
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
+#help-button {
+    background-color: #607d8b; /* Professional grey-blue */
+    color: white;
+}
+
+#help-button:hover {
+    background-color: #455a64;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
 #help-text {
     position: absolute;
     bottom: 15px;
