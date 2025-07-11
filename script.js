@@ -870,6 +870,49 @@ window.addEventListener('paste', (e) => {
             selectedNode.url = clipboardText;
             draw();
             saveState();
+        } else {
+            // Paste text as child nodes
+            const paragraphs = clipboardText.split(/\n\s*\n/);
+            let lastNode = selectedNode;
+            paragraphs.forEach(paragraph => {
+                if (paragraph.trim() !== '') {
+                    const parentNode = selectedNode;
+                    let newX = lastNode.x;
+                    let newY = lastNode.y + NODE_RADIUS * 1.5;
+
+                    // Adjust position to avoid overlap
+                    let attempts = 0;
+                    const maxAttempts = 100; // Prevent infinite loops
+                    const shiftAmount = NODE_RADIUS * 1.5; // Amount to shift if collision occurs
+
+                    while (checkCollision(newX, newY, NODE_RADIUS) && attempts < maxAttempts) {
+                        newY += shiftAmount;
+                        attempts++;
+                    }
+
+                    const newNode = {
+                        x: newX,
+                        y: newY,
+                        text: paragraph.trim(),
+                        type: 'child',
+                        shape: 'square',
+                        color: selectedNode.color, // Inherit color from parent
+                        radius: NODE_RADIUS, // Add radius property
+                        url: null,
+                        folded: false, // New property for folding/unfolding
+                        image: null, // Will store the actual Image object
+                        imageDataURL: null, // Will store the Data URL string for saving
+                        imageScale: 1.0 // New property for image scaling
+                    };
+                    nodes.push(newNode);
+                    const parentIndex = nodes.indexOf(parentNode);
+                    const newIndex = nodes.length - 1;
+                    connections.push([parentIndex, newIndex]);
+                    lastNode = newNode;
+                }
+            });
+            draw();
+            saveState();
         }
     }
 });
