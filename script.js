@@ -878,7 +878,9 @@ window.addEventListener('paste', (e) => {
             const firstRootNode = nodes[0]; // The very first node of the map
 
             // Determine the horizontal direction for all new nodes from this paste
-            const placeOnRight = parentNode.x > firstRootNode.x;
+            // Place nodes on the opposite side of the first father node
+            // If there's only one node, default to right side
+            const placeOnRight = nodes.length === 1 ? true : parentNode.x > firstRootNode.x;
             const initialX = placeOnRight ? parentNode.x + NODE_RADIUS * 2.5 : parentNode.x - NODE_RADIUS * 2.5;
 
             paragraphs.forEach((paragraph, index) => {
