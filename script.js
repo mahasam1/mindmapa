@@ -548,6 +548,7 @@ canvas.addEventListener('dblclick', (e) => {
         });
         selectedNode = nodes[nodes.length - 1];
         textEditing = true;
+        isFirstKeyAfterSelection = true;
         draw();
         saveState();
     }
