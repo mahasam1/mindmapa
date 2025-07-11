@@ -138,44 +138,66 @@ function drawNode(node) {
         ctx.shadowBlur = 0;
     }
 
-    // Determine fill color based on node type
-    let fillColor = node.color;
+    // Only draw shape if it's not a text-only object
+    if (node.shape !== 'none') {
+        // Determine fill color based on node type
+        let fillColor = node.color;
 
-    ctx.fillStyle = fillColor; // Always use the node's actual color for fill
+        ctx.fillStyle = fillColor; // Always use the node's actual color for fill
 
-    const borderRadius = 10; // Radius for rounded corners
+        const borderRadius = 10; // Radius for rounded corners
 
-    ctx.beginPath();
-    if (node.shape === 'square') {
-        // Draw a rounded rectangle
-        ctx.roundRect(screenPos.x - size, screenPos.y - size, size * 2, size * 2, borderRadius);
-    } else { // Default to circle
-        ctx.arc(screenPos.x, screenPos.y, size, 0, Math.PI * 2);
+        ctx.beginPath();
+        if (node.shape === 'square') {
+            // Draw a rounded rectangle
+            ctx.roundRect(screenPos.x - size, screenPos.y - size, size * 2, size * 2, borderRadius);
+        } else { // Default to circle
+            ctx.arc(screenPos.x, screenPos.y, size, 0, Math.PI * 2);
+        }
+        ctx.fill();
+        ctx.shadowBlur = 0; // Reset shadow for other elements
+        ctx.strokeStyle = LINE_COLOR; // Use updated LINE_COLOR
+        ctx.stroke();
     }
-    ctx.fill();
-    ctx.shadowBlur = 0; // Reset shadow for other elements
-    ctx.strokeStyle = LINE_COLOR; // Use updated LINE_COLOR
-    ctx.stroke();
 
     // Draw text with wrapping and dynamic font size
-    const maxTextWidth = (size * 2) * 0.8; // 80% of node width for text
-    const maxTextHeight = (size * 2) * 0.8; // 80% of node height for text
-    let fontSize = 16 * camera.zoom;
+    let fontSize, maxTextWidth, maxTextHeight;
     let lines = [];
     const minFontSize = 8; // Minimum readable font size
 
-    do {
-        ctx.font = `${fontSize}px Inter`; // Use Inter font
+    if (node.type === 'text') {
+        // For text objects, use fixed fontSize and no size constraints
+        fontSize = (node.fontSize || 16) * camera.zoom;
+        maxTextWidth = canvas.width; // Allow text to be as wide as needed
+        maxTextHeight = canvas.height; // Allow text to be as tall as needed
+        ctx.font = `${fontSize}px Inter`;
         lines = wrapText(ctx, node.text, maxTextWidth);
         textHeight = lines.length * fontSize * 1.2; // 1.2 for line spacing
-        if (textHeight > maxTextHeight && fontSize > minFontSize) {
-            fontSize -= 1; // Reduce font size
-        } else {
-            break; // Fits or reached min font size
-        }
-    } while (fontSize >= minFontSize);
+    } else {
+        // For regular nodes, use the existing size-constrained approach
+        maxTextWidth = (size * 2) * 0.8; // 80% of node width for text
+        maxTextHeight = (size * 2) * 0.8; // 80% of node height for text
+        fontSize = 16 * camera.zoom;
+
+        do {
+            ctx.font = `${fontSize}px Inter`; // Use Inter font
+            lines = wrapText(ctx, node.text, maxTextWidth);
+            textHeight = lines.length * fontSize * 1.2; // 1.2 for line spacing
+            if (textHeight > maxTextHeight && fontSize > minFontSize) {
+                fontSize -= 1; // Reduce font size
+            } else {
+                break; // Fits or reached min font size
+            }
+        } while (fontSize >= minFontSize);
+    }
 
     if (fontSize >= minFontSize) {
+        // Apply glow to text for text objects when selected
+        if (node === selectedNode && node.shape === 'none') {
+            ctx.shadowBlur = 25;
+            ctx.shadowColor = 'rgba(0, 255, 0, 0.8)';
+        }
+        
         ctx.fillStyle = TEXT_COLOR;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -184,6 +206,9 @@ function drawNode(node) {
             ctx.fillText(line, screenPos.x, yOffset);
             yOffset += fontSize * 1.2;
         });
+        
+        // Reset shadow after text rendering
+        ctx.shadowBlur = 0;
 
         // Draw blinking cursor if text editing is active and cursor is visible
         if (node === selectedNode && textEditing && cursorVisible) {
@@ -204,9 +229,19 @@ function drawNode(node) {
 
     // Draw link icon if URL exists
     if (node.url && linkIcon.complete) {
-        const iconSize = 20 * camera.zoom; // Adjust size as needed
-        const iconX = screenPos.x + size - iconSize / 2; // Position to the right of the node
-        const iconY = screenPos.y - size + iconSize / 2; // Position to the top of the node
+        const iconSize = 20 * camera.zoom;
+        let iconX, iconY;
+        
+        if (node.type === 'text') {
+            // For text objects, position icon to the right of the text
+            const textWidth = lines.length > 0 ? Math.max(...lines.map(line => ctx.measureText(line).width)) : 0;
+            iconX = screenPos.x + textWidth / 2 + iconSize;
+            iconY = screenPos.y - textHeight / 2;
+        } else {
+            // For regular nodes, use the original positioning
+            iconX = screenPos.x + size - iconSize / 2;
+            iconY = screenPos.y - size + iconSize / 2;
+        }
 
         ctx.drawImage(linkIcon, iconX - iconSize / 2, iconY - iconSize / 2, iconSize, iconSize);
 
@@ -227,8 +262,16 @@ function drawNode(node) {
         const imgWidth = img.width * node.imageScale * camera.zoom;
         const imgHeight = img.height * node.imageScale * camera.zoom;
         const imageOffsetX = imgWidth / 2;
-        // Position image: top edge 5px above node's top edge
-        const imageTopY = screenPos.y - size - imgHeight - (5 * camera.zoom);
+        let imageTopY;
+        
+        if (node.type === 'text') {
+            // For text objects, position image above the text
+            imageTopY = screenPos.y - textHeight / 2 - imgHeight - (5 * camera.zoom);
+        } else {
+            // For regular nodes, use the original positioning
+            imageTopY = screenPos.y - size - imgHeight - (5 * camera.zoom);
+        }
+        
         ctx.drawImage(img, screenPos.x - imageOffsetX, imageTopY, imgWidth, imgHeight);
     }
 
@@ -400,8 +443,8 @@ canvas.addEventListener('mouseup', (e) => {
             const draggingNodeIndex = nodes.indexOf(draggingNode);
             const dropTargetNodeIndex = nodes.indexOf(dropTargetNode);
 
-            // Prevent reparenting if target is a descendant of the dragged node
-            if (!isDescendant(draggingNode, dropTargetNode)) {
+            // Prevent reparenting if target is a descendant of the dragged node or if target is a text object
+            if (!isDescendant(draggingNode, dropTargetNode) && dropTargetNode.type !== 'text') {
                 // Remove existing parent connection for draggingNode
                 connections = connections.filter(conn => conn[1] !== draggingNodeIndex);
 
@@ -530,28 +573,29 @@ canvas.addEventListener('wheel', (e) => {
 });
 
 canvas.addEventListener('dblclick', (e) => {
-    if (!selectedNode) { // Only create a new node if no node is currently selected
-        const worldPos = screenToWorld(e.clientX, e.clientY);
-        nodes.push({
-            x: worldPos.x,
-            y: worldPos.y,
-            text: 'Father Node',
-            type: 'father',
-            shape: 'circle',
-            color: NODE_COLOR,
-            radius: NODE_RADIUS, // Add radius property
-            url: null,
-            folded: false, // New property for folding/unfolding
-            image: null, // Will store the actual Image object
-            imageDataURL: null, // Will store the Data URL string for saving
-            imageScale: 1.0 // New property for image scaling
-        });
-        selectedNode = nodes[nodes.length - 1];
-        textEditing = true;
-        isFirstKeyAfterSelection = true;
-        draw();
-        saveState();
-    }
+    const worldPos = screenToWorld(e.clientX, e.clientY);
+    
+    // Create a text object (no shape, text only)
+    nodes.push({
+        x: worldPos.x,
+        y: worldPos.y,
+        text: 'Text',
+        type: 'text',
+        shape: 'none',
+        color: TEXT_COLOR,
+        radius: NODE_RADIUS, // Keep for compatibility but not used for text size
+        fontSize: 16, // New property for text objects
+        url: null,
+        folded: false, // New property for folding/unfolding
+        image: null, // Will store the actual Image object
+        imageDataURL: null, // Will store the Data URL string for saving
+        imageScale: 1.0 // New property for image scaling
+    });
+    selectedNode = nodes[nodes.length - 1];
+    textEditing = true;
+    isFirstKeyAfterSelection = true;
+    draw();
+    saveState();
 });
 
 window.addEventListener('keydown', (e) => {
@@ -585,7 +629,7 @@ window.addEventListener('keydown', (e) => {
         return; // Stop further execution
     }
 
-    if (e.key === 'Tab' && selectedNode) {
+    if (e.key === 'Tab' && selectedNode && selectedNode.type !== 'text') {
         e.preventDefault(); // Prevent default tab behavior
         const parentNode = selectedNode;
         let newX = parentNode.x + NODE_RADIUS * 2.5;
@@ -750,7 +794,13 @@ window.addEventListener('keydown', (e) => {
 
     if (selectedNode && (e.key === '+' || e.key === '=')) {
         e.preventDefault();
-        selectedNode.radius = Math.min(selectedNode.radius + 5, MAX_NODE_RADIUS);
+        if (selectedNode.type === 'text') {
+            // For text objects, change font size
+            selectedNode.fontSize = Math.min(selectedNode.fontSize + 2, 72);
+        } else {
+            // For regular nodes, change radius
+            selectedNode.radius = Math.min(selectedNode.radius + 5, MAX_NODE_RADIUS);
+        }
         draw();
         saveState();
         return;
@@ -758,7 +808,13 @@ window.addEventListener('keydown', (e) => {
 
     if (selectedNode && e.key === '-') {
         e.preventDefault();
-        selectedNode.radius = Math.max(selectedNode.radius - 5, MIN_NODE_RADIUS);
+        if (selectedNode.type === 'text') {
+            // For text objects, change font size
+            selectedNode.fontSize = Math.max(selectedNode.fontSize - 2, 8);
+        } else {
+            // For regular nodes, change radius
+            selectedNode.radius = Math.max(selectedNode.radius - 5, MIN_NODE_RADIUS);
+        }
         draw();
         saveState();
         return;
@@ -870,8 +926,8 @@ window.addEventListener('paste', (e) => {
             selectedNode.url = clipboardText;
             draw();
             saveState();
-        } else {
-            // Paste text as child nodes
+        } else if (selectedNode.type !== 'text') {
+            // Paste text as child nodes (only if parent is not a text object)
             const paragraphs = clipboardText.split(/\n\s*\n/);
             let lastPastedNode = null; // Keep track of the last node created in this paste operation
             const parentNode = selectedNode;
@@ -1104,6 +1160,7 @@ function loadState() {
                 url: node.url || null,
                 radius: node.radius || NODE_RADIUS,
                 folded: node.folded || false,
+                fontSize: node.fontSize || 16, // Default fontSize for text objects
                 image: null, // Initialize image to null, will be loaded asynchronously
                 imageDataURL: node.imageDataURL || null, // Load the Data URL string
                 imageScale: node.imageScale || 1.0

@@ -14,11 +14,11 @@
             <div class="control-category">
                 <h2>Node Management</h2>
                 <ul>
-                    <li><strong>Double-click:</strong> Create a new node.</li>
+                    <li><strong>Double-click:</strong> Create a new text object (text only, no shape).</li>
                     <li><strong>Drag & Drop Node:</strong> Move a node. Drop on another node to make it a child.</li>
-                    <li><strong>Click Node:</strong> Select a node.</li>
-                    <li><strong>Type:</strong> Edit selected node's text.</li>
-                    <li><strong>Tab (on selected node):</strong> Create a new child node.</li>
+                    <li><strong>Click Node:</strong> Select a node or text object.</li>
+                    <li><strong>Type:</strong> Edit selected node's or text object's text.</li>
+                    <li><strong>Tab (on selected node):</strong> Create a new child node (not available for text objects).</li>
                     <li><strong>Enter (on selected node):</strong> Create a new sibling node.</li>
                     <li><strong>DEL:</strong> Delete selected node and its children.</li>
                      <li><strong>\:</strong> Toggle fold/unfold children of selected node.</li>
@@ -34,21 +34,35 @@
                 </ul>
             </div>
             <div class="control-category">
-                <h2>Node Styling</h2>
+                <h2>Node & Text Styling</h2>
                 <ul>
-                    <li><strong>+:</strong> Increase size of selected node.</li>
-                    <li><strong>-:</strong> Decrease size of selected node.</li>
+                    <li><strong>+ (on nodes):</strong> Increase size of selected node.</li>
+                    <li><strong>- (on nodes):</strong> Decrease size of selected node.</li>
+                    <li><strong>+ (on text objects):</strong> Increase font size of selected text object.</li>
+                    <li><strong>- (on text objects):</strong> Decrease font size of selected text object.</li>
                     <li><strong>Ctrl+Shift:</strong> Open color picker for selected node and its children.</li>
                 </ul>
             </div>
             <div class="control-category">
                 <h2>Attachments</h2>
                 <ul>
-                    <li><strong>Ctrl+V (on selected node):</strong> Paste URL or Image from clipboard.</li>
-                    <li><strong>Ctrl + Click (on node with URL):</strong> Open URL in new tab.</li>
-                    <li><strong>Ctrl+DEL:</strong> Delete image from selected node.</li>
-                    <li><strong>Ctrl + '+':</strong> Increase size of image on selected node.</li>
-                    <li><strong>Ctrl + '-':</strong> Decrease size of image on selected node.</li>
+                    <li><strong>Ctrl+V (on selected node):</strong> Paste URL, Image, or Text from clipboard.</li>
+                    <li><strong>Ctrl+V (on text objects):</strong> Paste URL or Image (text pasting creates child nodes only for regular nodes).</li>
+                    <li><strong>Ctrl + Click (on node/text object with URL):</strong> Open URL in new tab.</li>
+                    <li><strong>Ctrl+DEL:</strong> Delete image from selected node or text object.</li>
+                    <li><strong>Ctrl + '+':</strong> Increase size of image on selected node or text object.</li>
+                    <li><strong>Ctrl + '-':</strong> Decrease size of image on selected node or text object.</li>
+                </ul>
+            </div>
+            <div class="control-category">
+                <h2>Text Objects</h2>
+                <ul>
+                    <li><strong>What are text objects:</strong> Shape-free text elements created with double-click.</li>
+                    <li><strong>Key differences:</strong> No visual shape, only text with green glow when selected.</li>
+                    <li><strong>Size control:</strong> +/- keys change actual font size (8px to 72px).</li>
+                    <li><strong>Cannot have children:</strong> Tab key and text pasting as children are disabled.</li>
+                    <li><strong>Can be reparented:</strong> Can still be moved and made children of regular nodes.</li>
+                    <li><strong>Full feature support:</strong> URLs, images, colors, undo/redo all work normally.</li>
                 </ul>
             </div>
              <div class="control-category">
