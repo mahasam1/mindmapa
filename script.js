@@ -873,12 +873,19 @@ window.addEventListener('paste', (e) => {
         } else {
             // Paste text as child nodes
             const paragraphs = clipboardText.split(/\n\s*\n/);
-            let lastNode = selectedNode;
-            paragraphs.forEach(paragraph => {
+            let lastPastedNode = null; // Keep track of the last node created in this paste operation
+            const parentNode = selectedNode;
+            const firstRootNode = nodes[0]; // The very first node of the map
+
+            // Determine the horizontal direction for all new nodes from this paste
+            const placeOnRight = parentNode.x > firstRootNode.x;
+            const initialX = placeOnRight ? parentNode.x + NODE_RADIUS * 2.5 : parentNode.x - NODE_RADIUS * 2.5;
+
+            paragraphs.forEach((paragraph, index) => {
                 if (paragraph.trim() !== '') {
-                    const parentNode = selectedNode;
-                    let newX = lastNode.x;
-                    let newY = lastNode.y + NODE_RADIUS * 1.5;
+                    let newX = initialX;
+                    // The first new node is positioned relative to the parent, subsequent nodes are positioned relative to the previously pasted one.
+                    let newY = (lastPastedNode === null) ? parentNode.y : lastPastedNode.y + NODE_RADIUS * 1.5;
 
                     // Adjust position to avoid overlap
                     let attempts = 0;
@@ -896,7 +903,7 @@ window.addEventListener('paste', (e) => {
                         text: paragraph.trim(),
                         type: 'child',
                         shape: 'square',
-                        color: selectedNode.color, // Inherit color from parent
+                        color: parentNode.color, // Inherit color from parent
                         radius: NODE_RADIUS, // Add radius property
                         url: null,
                         folded: false, // New property for folding/unfolding
@@ -908,7 +915,7 @@ window.addEventListener('paste', (e) => {
                     const parentIndex = nodes.indexOf(parentNode);
                     const newIndex = nodes.length - 1;
                     connections.push([parentIndex, newIndex]);
-                    lastNode = newNode;
+                    lastPastedNode = newNode; // Update the last pasted node
                 }
             });
             draw();
@@ -1110,7 +1117,7 @@ function loadState() {
                 // Handle potential errors during image loading
                 img.onerror = () => {
                     console.error("Error loading image for node:", newNode);
-                    newNode.image = null; // Clear image if loading fails
+                    newNode.image = null;
                     newNode.imageDataURL = null;
                     draw();
                 };
