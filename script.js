@@ -32,7 +32,7 @@ let historyPointer = -1;
 const NODE_RADIUS = 60; // Base radius for new nodes
 const MIN_NODE_RADIUS = 30;
 const MAX_NODE_RADIUS = 120;
-const NODE_COLOR = '#5c6bc0'; // Muted Indigo for father nodes
+const NODE_COLOR = '#ffffff'; // White for father nodes
 const NODE_SELECTED_COLOR = '#ffca28'; // This constant will no longer be used for fill, but kept for reference if needed elsewhere
 const TEXT_COLOR = '#333333'; // Dark grey for text
 const LINE_COLOR = '#757575'; // Slightly darker grey for lines
@@ -511,9 +511,9 @@ canvas.addEventListener('mouseup', (e) => {
                 // Add new connection from dropTargetNode to draggingNode
                 connections.push([dropTargetNodeIndex, draggingNodeIndex]);
 
-                // Ensure the reparented node is a 'child' type and pink
+                // Ensure the reparented node is a 'child' type and inherits color from new parent
                 draggingNode.type = 'child';
-                draggingNode.color = '#FF69B4';
+                updateNodeAndChildrenColor(draggingNode, dropTargetNode.color);
             }
         }
     }
@@ -811,7 +811,7 @@ window.addEventListener('keydown', (e) => {
             text: 'Father Node',
             type: 'father',
             shape: 'circle',
-            color: NODE_COLOR,
+            color: '#ffffff', // White color for initial father node
             radius: NODE_RADIUS, // Add radius property
             url: null,
             folded: false, // New property for folding/unfolding
@@ -1456,7 +1456,7 @@ function loadState() {
             text: 'Father Node',
             type: 'father',
             shape: 'circle',
-            color: NODE_COLOR,
+            color: '#ffffff', // White color for initial father node
             radius: NODE_RADIUS,
             url: null,
             folded: false,
