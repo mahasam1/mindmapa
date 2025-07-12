@@ -343,6 +343,7 @@ canvas.addEventListener('mousedown', (e) => {
             clickedOnNode = true;
             if (e.button === 0) { // Left click
                 selectedNode = node;
+                updateContextHelp();
                 draggingNode = node;
                 draggingNodeInitialPos = { x: node.x, y: node.y };
                 draggedDescendantOffsets.clear();
@@ -375,6 +376,7 @@ canvas.addEventListener('mousedown', (e) => {
 
     if (!clickedOnNode) {
         selectedNode = null;
+        updateContextHelp();
         textEditing = false;
         if (e.button === 1) { // Middle click
             panning = true;
@@ -597,6 +599,7 @@ canvas.addEventListener('dblclick', (e) => {
         imageScale: 1.0 // New property for image scaling
     });
     selectedNode = nodes[nodes.length - 1];
+    updateContextHelp();
     textEditing = true;
     isFirstKeyAfterSelection = true;
     draw();
@@ -678,6 +681,7 @@ window.addEventListener('keydown', (e) => {
         const newIndex = nodes.length - 1;
         connections.push([parentIndex, newIndex]);
         selectedNode = newNode;
+        updateContextHelp();
         textEditing = true;
         isFirstKeyAfterSelection = true;
         draw();
@@ -734,6 +738,7 @@ window.addEventListener('keydown', (e) => {
             const newIndex = nodes.length - 1;
             connections.push([parentIndex, newIndex]);
             selectedNode = newNode; // Select the new node
+            updateContextHelp();
             textEditing = true; // Start editing the new node
             isFirstKeyAfterSelection = true;
             saveState();
@@ -798,6 +803,7 @@ window.addEventListener('keydown', (e) => {
         nodes = newNodes;
         connections = newConnections;
         selectedNode = null;
+        updateContextHelp();
         draw();
         saveState();
         return; // Stop further execution
@@ -1101,6 +1107,7 @@ function loadStateFromHistory(index) {
         camera = state.camera;
         backgroundColor = state.backgroundColor || '#ffffff'; // Default to white if not set
         selectedNode = null; // Clear selected node on undo/redo
+        updateContextHelp();
 
         // If no images to load, or all images are already loaded (e.g., from cache), draw immediately
         if (imagesToLoad === 0 || imagesLoaded === imagesToLoad) {
@@ -1254,6 +1261,46 @@ function loadState() {
     }
 }
 
+function updateContextHelp() {
+    const contextHelp = document.getElementById('context-help-content');
+    
+    if (!selectedNode) {
+        // No node selected - show map controls
+        contextHelp.innerHTML = `
+            <div class="help-title">Map Controls</div>
+            <div class="help-item"><span class="help-key">Wheel:</span> Zoom</div>
+            <div class="help-item"><span class="help-key">Mid-drag:</span> Pan</div>
+            <div class="help-item"><span class="help-key">Click:</span> Select node</div>
+            <div class="help-item"><span class="help-key">Double-click:</span> Create text</div>
+            <div class="help-item"><span class="help-key">Ctrl+Shift:</span> Background color</div>
+        `;
+    } else if (selectedNode.type === 'text') {
+        // Text object selected
+        contextHelp.innerHTML = `
+            <div class="help-title">Text Object</div>
+            <div class="help-item"><span class="help-key">Type:</span> Edit text</div>
+            <div class="help-item"><span class="help-key">+/-:</span> Font size</div>
+            <div class="help-item"><span class="help-key">Ctrl+V:</span> Paste URL/image</div>
+            <div class="help-item"><span class="help-key">Ctrl+Shift:</span> Color</div>
+            <div class="help-item"><span class="help-key">Del:</span> Delete</div>
+        `;
+    } else {
+        // Regular node selected
+        contextHelp.innerHTML = `
+            <div class="help-title">Node Controls</div>
+            <div class="help-item"><span class="help-key">Type:</span> Edit text</div>
+            <div class="help-item"><span class="help-key">Tab:</span> Child node</div>
+            <div class="help-item"><span class="help-key">Enter:</span> Sibling node</div>
+            <div class="help-item"><span class="help-key">+/-:</span> Size</div>
+            <div class="help-item"><span class="help-key">\\:</span> Fold/unfold</div>
+            <div class="help-item"><span class="help-key">Ctrl+Shift:</span> Color</div>
+            <div class="help-item"><span class="help-key">Ctrl+V:</span> Paste</div>
+            <div class="help-item"><span class="help-key">Del:</span> Delete</div>
+        `;
+    }
+}
+
 loadState();
 saveState(); // Save initial state to history after loading
+updateContextHelp(); // Initialize context help
 draw();
