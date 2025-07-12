@@ -20,6 +20,8 @@ let textEditing = false;
 let isFirstKeyAfterSelection = false; // New flag for text editing
 let cursorBlinkInterval = null;
 let cursorVisible = true;
+let backgroundColor = '#ffffff'; // Default white background
+let changingBackgroundColor = false; // Flag to track if we're changing background color
 
 const MAX_HISTORY_SIZE = 10; // Store last 10 actions
 let history = [];
@@ -316,7 +318,10 @@ function drawConnections() {
 }
 
 function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Fill background with chosen color
+    ctx.fillStyle = backgroundColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
     drawConnections(); // Draw connections first
     nodes.forEach(node => {
         if (isNodeVisible(node)) {
@@ -862,10 +867,18 @@ window.addEventListener('keydown', (e) => {
         return;
     }
 
-    if (e.ctrlKey && e.shiftKey && selectedNode) {
+    if (e.ctrlKey && e.shiftKey) {
         e.preventDefault();
         const colorPicker = document.getElementById('color-picker');
-        colorPicker.value = selectedNode.color;
+        if (selectedNode) {
+            // Change node color
+            changingBackgroundColor = false;
+            colorPicker.value = selectedNode.color;
+        } else {
+            // Change background color
+            changingBackgroundColor = true;
+            colorPicker.value = backgroundColor;
+        }
         colorPicker.click();
         return;
     }
@@ -1008,7 +1021,8 @@ function saveMap() {
     const data = {
         nodes: nodes,
         connections: connections,
-        camera: camera
+        camera: camera,
+        backgroundColor: backgroundColor
     };
     const json = JSON.stringify(data, null, 4);
     const blob = new Blob([json], { type: 'application/json' });
@@ -1029,7 +1043,8 @@ function saveState() {
             image: undefined // Don't save the Image object directly
         })),
         connections: connections,
-        camera: camera
+        camera: camera,
+        backgroundColor: backgroundColor
     };
     localStorage.setItem('mindmap', JSON.stringify(state));
 
@@ -1084,6 +1099,7 @@ function loadStateFromHistory(index) {
         nodes = newNodes; // Assign newNodes to global nodes array
         connections = state.connections;
         camera = state.camera;
+        backgroundColor = state.backgroundColor || '#ffffff'; // Default to white if not set
         selectedNode = null; // Clear selected node on undo/redo
 
         // If no images to load, or all images are already loaded (e.g., from cache), draw immediately
@@ -1123,6 +1139,7 @@ function loadMap() {
                     nodes = loadedData.nodes || [];
                     connections = loadedData.connections || [];
                     camera = loadedData.camera || { x: 0, y: 0, zoom: 1 };
+                    backgroundColor = loadedData.backgroundColor || '#ffffff'; // Default to white if not set
                     // Clear history when loading a new map
                     history = [];
                     historyPointer = -1;
@@ -1150,8 +1167,16 @@ document.getElementById('help-button').addEventListener('click', () => {
 const colorPicker = document.getElementById('color-picker');
 
 colorPicker.addEventListener('change', (e) => {
-    if (selectedNode) {
-        const newColor = e.target.value;
+    const newColor = e.target.value;
+    
+    if (changingBackgroundColor) {
+        // Change background color
+        backgroundColor = newColor;
+        changingBackgroundColor = false;
+        draw();
+        saveState();
+    } else if (selectedNode) {
+        // Change node color
         selectedNode.color = newColor;
         updateNodeAndChildrenColor(selectedNode, newColor);
         draw();
@@ -1207,6 +1232,7 @@ function loadState() {
         }) || [];
         connections = state.connections || [];
         camera = state.camera || { x: 0, y: 0, zoom: 1 };
+        backgroundColor = state.backgroundColor || '#ffffff'; // Default to white if not set
     }
 
     // If no nodes are loaded, create a default father node in the center
