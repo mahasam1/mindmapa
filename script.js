@@ -631,6 +631,15 @@ window.addEventListener('keydown', (e) => {
 
     if (e.key === 'Tab' && selectedNode && selectedNode.type !== 'text') {
         e.preventDefault(); // Prevent default tab behavior
+        
+        // If selected node has empty text, give it default text
+        if (selectedNode.text === '') {
+            selectedNode.text = selectedNode.type === 'father' ? 'Father Node' : 'Child Node';
+            draw();
+            saveState();
+            return;
+        }
+        
         const parentNode = selectedNode;
         let newX = parentNode.x + NODE_RADIUS * 2.5;
         let newY = parentNode.y;
@@ -648,7 +657,7 @@ window.addEventListener('keydown', (e) => {
         const newNode = {
             x: newX,
             y: newY,
-            text: 'Child Node',
+            text: '',
             type: 'child',
             shape: 'square',
             color: selectedNode.color, // Inherit color from parent
@@ -665,6 +674,7 @@ window.addEventListener('keydown', (e) => {
         connections.push([parentIndex, newIndex]);
         selectedNode = newNode;
         textEditing = true;
+        isFirstKeyAfterSelection = true;
         draw();
         saveState();
         return; // Stop further execution
@@ -673,6 +683,14 @@ window.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && selectedNode) {
         e.preventDefault(); // Prevent default Enter behavior (e.g., new line in input fields)
         textEditing = false; // Always stop text editing on Enter
+        
+        // If selected node has empty text, give it default text
+        if (selectedNode.text === '') {
+            selectedNode.text = selectedNode.type === 'father' ? 'Father Node' : 'Child Node';
+            draw();
+            saveState();
+            return;
+        }
         
         // Create sibling node logic
         const parentConnection = connections.find(c => nodes[c[1]] === selectedNode);
@@ -694,14 +712,17 @@ window.addEventListener('keydown', (e) => {
             const newNode = {
                 x: newX,
                 y: newY,
-                text: 'Child Node',
+                text: '',
                 type: 'child',
                 shape: 'square',
                 color: selectedNode.color, // Inherit color from parent
                 url: null,
                 radius: NODE_RADIUS, // Add radius property
                 shape: 'square', // Added shape property
-                folded: false // New property for folding/unfolding
+                folded: false, // New property for folding/unfolding
+                image: null, // Will store the actual Image object
+                imageDataURL: null, // Will store the Data URL string for saving
+                imageScale: 1.0 // New property for image scaling
             };
             nodes.push(newNode);
             const parentIndex = nodes.indexOf(parentNode);
@@ -709,6 +730,7 @@ window.addEventListener('keydown', (e) => {
             connections.push([parentIndex, newIndex]);
             selectedNode = newNode; // Select the new node
             textEditing = true; // Start editing the new node
+            isFirstKeyAfterSelection = true;
             saveState();
         }
         draw();
