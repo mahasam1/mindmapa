@@ -1,3 +1,9 @@
+/*
+ * Mind Mapping Application
+ * Copyright (c) 2025 Dima Chulkin (https://www.linkedin.com/in/chulkin/)
+ * Licensed under the MIT License - see LICENSE file for details
+ */
+
 const canvas = document.getElementById('mindmap-canvas');
 const ctx = canvas.getContext('2d');
 
