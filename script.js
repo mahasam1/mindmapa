@@ -110,7 +110,6 @@ linkIcon.src = 'icons/link-8564589_640.png';
 function drawNode(node) {
     const screenPos = worldToScreen(node.x, node.y);
     let currentRadius = node.radius; // Use node's specific radius
-    let nodeWidth, nodeHeight; // For child nodes (rectangles)
 
     // Temporarily set font for initial text measurement
     ctx.font = `${16 * camera.zoom}px Inter`; // Use Inter font
@@ -123,30 +122,16 @@ function drawNode(node) {
         }
     });
 
-    // Calculate dimensions based on node type
-    if (node.type === 'child') {
-        // For child nodes, calculate optimal rectangle dimensions relative to father node
-        const fatherNodeSize = NODE_RADIUS * 2 * camera.zoom; // Father node diameter with zoom
-        const minWidth = fatherNodeSize / 1.3; // 1.3 times smaller than father node
-        const padding = 8 * camera.zoom; // Reduced padding for compact design
-        
-        const textWidth = longestWordWidth + padding;
-        nodeWidth = Math.max(textWidth, minWidth);
-        
-        // Height will be calculated after we know the text layout
-        const size = Math.max(nodeWidth, fatherNodeSize / 2) / 2; // For compatibility
-    } else {
-        // For father nodes and circles, use existing logic
-        const requiredWidthForLongestWord = longestWordWidth / 0.8; // 80% of node width for text
-        const requiredRadiusForLongestWord = requiredWidthForLongestWord / (2 * camera.zoom);
+    // Calculate required radius to fit the longest word
+    const requiredWidthForLongestWord = longestWordWidth / 0.8; // 80% of node width for text
+    const requiredRadiusForLongestWord = requiredWidthForLongestWord / (2 * camera.zoom);
 
-        // Adjust currentRadius if a single word is too long
-        if (requiredRadiusForLongestWord > currentRadius) {
-            currentRadius = requiredRadiusForLongestWord;
-        }
+    // Adjust currentRadius if a single word is too long
+    if (requiredRadiusForLongestWord > currentRadius) {
+        currentRadius = requiredRadiusForLongestWord;
     }
 
-    const size = currentRadius * camera.zoom; // Final size for drawing (used for circles and compatibility)
+    const size = currentRadius * camera.zoom; // Final size for drawing
 
     if (node === selectedNode) {
         ctx.shadowBlur = 25; // Increased blur for a stronger glow
@@ -165,13 +150,8 @@ function drawNode(node) {
         const borderRadius = 10; // Radius for rounded corners
 
         ctx.beginPath();
-        if (node.type === 'child') {
-            // Child nodes are drawn as rectangles with optimal dimensions
-            const rectWidth = nodeWidth;
-            const rectHeight = nodeHeight || (NODE_RADIUS * 2 * camera.zoom) / 2; // Default height
-            ctx.roundRect(screenPos.x - rectWidth/2, screenPos.y - rectHeight/2, rectWidth, rectHeight, 8);
-        } else if (node.shape === 'square') {
-            // Draw a rounded rectangle (for non-child square nodes)
+        if (node.shape === 'square') {
+            // Draw a rounded rectangle
             ctx.roundRect(screenPos.x - size, screenPos.y - size, size * 2, size * 2, borderRadius);
         } else { // Default to circle
             ctx.arc(screenPos.x, screenPos.y, size, 0, Math.PI * 2);
@@ -183,7 +163,7 @@ function drawNode(node) {
     }
 
     // Draw text with wrapping and dynamic font size
-    let fontSize, maxTextWidth, maxTextHeight, textHeight;
+    let fontSize, maxTextWidth, maxTextHeight;
     let lines = [];
     const minFontSize = 8; // Minimum readable font size
 
@@ -195,33 +175,8 @@ function drawNode(node) {
         ctx.font = `${fontSize}px Inter`;
         lines = wrapText(ctx, node.text, maxTextWidth);
         textHeight = lines.length * fontSize * 1.2; // 1.2 for line spacing
-    } else if (node.type === 'child') {
-        // For child nodes (rectangles), optimize for text content with relative sizing
-        const fatherNodeSize = NODE_RADIUS * 2 * camera.zoom; // Father node diameter with zoom
-        const minHeight = fatherNodeSize / 2; // Half the height of father node
-        
-        fontSize = 12 * camera.zoom; // Compact font for child nodes
-        maxTextWidth = nodeWidth * 0.9; // 90% of rectangle width for text
-        
-        ctx.font = `${fontSize}px Inter`;
-        lines = wrapText(ctx, node.text, maxTextWidth);
-        textHeight = lines.length * fontSize * 1.2; // 1.2 for line spacing
-        
-        // Calculate optimal rectangle height based on text with relative minimum
-        const textPadding = 6 * camera.zoom; // Reduced padding
-        nodeHeight = Math.max(textHeight + textPadding, minHeight); // Use relative minimum height
-        
-        // Redraw the rectangle now that we know the proper height
-        if (node.shape !== 'none') {
-            ctx.fillStyle = node.color;
-            ctx.beginPath();
-            ctx.roundRect(screenPos.x - nodeWidth/2, screenPos.y - nodeHeight/2, nodeWidth, nodeHeight, 8);
-            ctx.fill();
-            ctx.strokeStyle = LINE_COLOR;
-            ctx.stroke();
-        }
     } else {
-        // For regular nodes (circles/squares), use the existing size-constrained approach
+        // For regular nodes, use the existing size-constrained approach
         maxTextWidth = (size * 2) * 0.8; // 80% of node width for text
         maxTextHeight = (size * 2) * 0.8; // 80% of node height for text
         fontSize = 16 * camera.zoom;
@@ -382,8 +337,9 @@ canvas.addEventListener('mousedown', (e) => {
 
     for (let i = nodes.length - 1; i >= 0; i--) {
         const node = nodes[i];
-        const isClicked = isPointInNode(worldPos.x, worldPos.y, node);
-        if (isClicked) {
+        const dx = worldPos.x - node.x;
+        const dy = worldPos.y - node.y;
+        if (dx * dx + dy * dy < NODE_RADIUS * NODE_RADIUS) {
             clickedOnNode = true;
             if (e.button === 0) { // Left click
                 selectedNode = node;
@@ -461,7 +417,9 @@ canvas.addEventListener('mouseup', (e) => {
     if (e.button === 2 && drawingConnection) {
         const worldPos = screenToWorld(e.clientX, e.clientY);
         const endNode = nodes.find(node => {
-            return isPointInNode(worldPos.x, worldPos.y, node);
+            const dx = worldPos.x - node.x;
+            const dy = worldPos.y - node.y;
+            return dx * dx + dy * dy < NODE_RADIUS * NODE_RADIUS;
         });
 
         if (endNode && endNode !== connectionStartNode) {
@@ -480,7 +438,9 @@ canvas.addEventListener('mouseup', (e) => {
             const node = nodes[i];
             if (node === draggingNode) continue; // Cannot reparent to self
 
-            if (isPointInNode(worldPos.x, worldPos.y, node)) {
+            const dx = worldPos.x - node.x;
+            const dy = worldPos.y - node.y;
+            if (dx * dx + dy * dy < NODE_RADIUS * NODE_RADIUS) {
                 dropTargetNode = node;
                 break;
             }
@@ -590,93 +550,7 @@ function getAllDescendants(node) {
     return Array.from(descendants);
 }
 
-function getNodeDimensions(node) {
-    if (node.type === 'child') {
-        // For child nodes, calculate rectangle dimensions relative to father node
-        const fatherNodeSize = NODE_RADIUS * 2; // Father node diameter
-        const minWidth = fatherNodeSize / 1.3; // 1.3 times smaller than father node
-        const minHeight = fatherNodeSize / 2; // Half the height of father node
-        
-        const padding = 8; // Reduced padding for more compact design
-        
-        // Estimate text width (simplified)
-        const avgCharWidth = 7; // Approximate character width
-        const textWidth = node.text.length * avgCharWidth + padding;
-        const width = Math.max(textWidth, minWidth);
-        
-        // Estimate text height
-        const lineHeight = 14;
-        const lines = Math.ceil(node.text.length / (width / avgCharWidth));
-        const height = Math.max(lines * lineHeight + padding, minHeight);
-        
-        return { width, height, isRect: true };
-    } else {
-        // For circular nodes
-        const radius = node.radius || NODE_RADIUS;
-        return { width: radius * 2, height: radius * 2, radius, isRect: false };
-    }
-}
-
-function isPointInNode(x, y, node) {
-    if (node.type === 'child') {
-        // For child nodes (rectangles)
-        const dims = getNodeDimensions(node);
-        const dx = Math.abs(x - node.x);
-        const dy = Math.abs(y - node.y);
-        return dx <= dims.width / 2 && dy <= dims.height / 2;
-    } else {
-        // For circular nodes
-        const dx = x - node.x;
-        const dy = y - node.y;
-        const radius = node.radius || NODE_RADIUS;
-        return dx * dx + dy * dy < radius * radius;
-    }
-}
-
-function checkNodeCollision(x1, y1, node1Dims, x2, y2, node2Dims) {
-    if (node1Dims.isRect && node2Dims.isRect) {
-        // Rectangle to rectangle collision
-        const dx = Math.abs(x1 - x2);
-        const dy = Math.abs(y1 - y2);
-        return dx < (node1Dims.width + node2Dims.width) / 2 && 
-               dy < (node1Dims.height + node2Dims.height) / 2;
-    } else if (!node1Dims.isRect && !node2Dims.isRect) {
-        // Circle to circle collision
-        const dx = x1 - x2;
-        const dy = y1 - y2;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        return distance < node1Dims.radius + node2Dims.radius;
-    } else {
-        // Circle to rectangle collision (approximate as circle to circle for simplicity)
-        const dx = x1 - x2;
-        const dy = y1 - y2;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        const r1 = node1Dims.radius || Math.max(node1Dims.width, node1Dims.height) / 2;
-        const r2 = node2Dims.radius || Math.max(node2Dims.width, node2Dims.height) / 2;
-        return distance < r1 + r2;
-    }
-}
-
-function checkCollision(newNodeX, newNodeY, newNodeRadius, newNodeType = 'father') {
-    const newNodeDims = newNodeType === 'child' ? 
-        { 
-            width: (NODE_RADIUS * 2) / 1.3, // 1.3 times smaller than father node
-            height: (NODE_RADIUS * 2) / 2,  // Half the height of father node
-            isRect: true 
-        } : 
-        { radius: newNodeRadius, width: newNodeRadius * 2, height: newNodeRadius * 2, isRect: false };
-    
-    for (const existingNode of nodes) {
-        const existingNodeDims = getNodeDimensions(existingNode);
-        
-        if (checkNodeCollision(newNodeX, newNodeY, newNodeDims, existingNode.x, existingNode.y, existingNodeDims)) {
-            return true; // Collision detected
-        }
-    }
-    return false; // No collision
-}
-
-function checkCollisionOld(newNodeX, newNodeY, newNodeRadius) {
+function checkCollision(newNodeX, newNodeY, newNodeRadius) {
     for (const existingNode of nodes) {
         // Calculate distance between centers
         const dx = newNodeX - existingNode.x;
@@ -783,7 +657,7 @@ window.addEventListener('keydown', (e) => {
         const maxAttempts = 100; // Prevent infinite loops
         const shiftAmount = NODE_RADIUS * 1.5; // Amount to shift if collision occurs
 
-        while (checkCollision(newX, newY, NODE_RADIUS, 'child') && attempts < maxAttempts) {
+        while (checkCollision(newX, newY, NODE_RADIUS) && attempts < maxAttempts) {
             newY += shiftAmount;
             attempts++;
         }
@@ -838,7 +712,7 @@ window.addEventListener('keydown', (e) => {
             const maxAttempts = 100; // Prevent infinite loops
             const shiftAmount = NODE_RADIUS * 1.5; // Amount to shift if collision occurs
 
-            while (checkCollision(newX, newY, NODE_RADIUS, 'child') && attempts < maxAttempts) {
+            while (checkCollision(newX, newY, NODE_RADIUS) && attempts < maxAttempts) {
                 newY += shiftAmount;
                 attempts++;
             }
@@ -1117,7 +991,7 @@ window.addEventListener('paste', (e) => {
                     const maxAttempts = 100; // Prevent infinite loops
                     const shiftAmount = NODE_RADIUS * 1.5; // Amount to shift if collision occurs
 
-                    while (checkCollision(newX, newY, NODE_RADIUS, 'child') && attempts < maxAttempts) {
+                    while (checkCollision(newX, newY, NODE_RADIUS) && attempts < maxAttempts) {
                         newY += shiftAmount;
                         attempts++;
                     }
