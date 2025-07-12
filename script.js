@@ -265,7 +265,8 @@ function drawNode(node) {
             ctx.shadowColor = 'rgba(0, 255, 0, 0.8)';
         }
         
-        ctx.fillStyle = TEXT_COLOR;
+        // Use node's color for text objects, otherwise use default TEXT_COLOR
+        ctx.fillStyle = node.type === 'text' ? node.color : TEXT_COLOR;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         let yOffset = screenPos.y - (textHeight / 2) + (fontSize * 0.6); // Adjust for vertical centering
@@ -361,9 +362,13 @@ function hasChildren(node) {
 
 function drawConnections() {
     ctx.strokeStyle = LINE_COLOR;
-    ctx.lineWidth = 2 * camera.zoom;
+    ctx.lineWidth = Math.max(1, 2 * camera.zoom); // Ensure minimum line width of 1 pixel
     connections.forEach(([startIdx, endIdx]) => {
         if (nodes[startIdx] && nodes[endIdx] && isNodeVisible(nodes[startIdx]) && isNodeVisible(nodes[endIdx])) {
+            // Skip drawing connections to or from text objects (make them invisible)
+            if (nodes[endIdx].type === 'text' || nodes[startIdx].type === 'text') {
+                return;
+            }
             const startPos = worldToScreen(nodes[startIdx].x, nodes[startIdx].y);
             const endPos = worldToScreen(nodes[endIdx].x, nodes[endIdx].y);
             ctx.beginPath();
@@ -518,8 +523,12 @@ canvas.addEventListener('mouseup', (e) => {
                 connections.push([dropTargetNodeIndex, draggingNodeIndex]);
 
                 // Ensure the reparented node is a 'child' type and inherits color from new parent
-                draggingNode.type = 'child';
-                updateNodeAndChildrenColor(draggingNode, dropTargetNode.color);
+                // But preserve text objects as text objects and don't force color inheritance
+                if (draggingNode.type !== 'text') {
+                    draggingNode.type = 'child';
+                    updateNodeAndChildrenColor(draggingNode, dropTargetNode.color);
+                }
+                // Text objects keep their type and color when reparented
             }
         }
     }
@@ -1089,7 +1098,7 @@ window.addEventListener('keydown', (e) => {
         if (selectedNode) {
             // Change node color
             changingBackgroundColor = false;
-            colorPicker.value = selectedNode.color;
+            colorPicker.value = selectedNode.color || (selectedNode.type === 'text' ? TEXT_COLOR : NODE_COLOR);
         } else {
             // Change background color
             changingBackgroundColor = true;
@@ -1413,7 +1422,8 @@ function updateNodeAndChildrenColor(node, newColor) {
     const childrenConnections = connections.filter(c => c[0] === nodeIndex);
     childrenConnections.forEach(conn => {
         const childNode = nodes[conn[1]];
-        if (childNode) {
+        // Don't automatically change color of text object children - let them keep their own colors
+        if (childNode && childNode.type !== 'text') {
             updateNodeAndChildrenColor(childNode, newColor);
         }
     });
