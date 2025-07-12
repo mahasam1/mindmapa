@@ -13,7 +13,9 @@ let draggingNode = null;
 let draggingNodeInitialPos = { x: 0, y: 0 };
 let draggedDescendantOffsets = new Map(); // Stores {node: {dx, dy}} for descendants
 let panning = false;
+let trackpadPanning = false;
 let lastMousePos = { x: 0, y: 0 };
+let lastTouchPos = { x: 0, y: 0 };
 let drawingConnection = false;
 let connectionStartNode = null;
 let textEditing = false;
@@ -434,9 +436,8 @@ canvas.addEventListener('mousedown', (e) => {
         selectedNode = null;
         updateContextHelp();
         textEditing = false;
-        if (e.button === 1) { // Middle click
-            panning = true;
-        }
+        // Enable panning with any mouse button on empty map
+        panning = true;
     }
     lastMousePos = mousePos;
 });
@@ -457,7 +458,7 @@ canvas.addEventListener('mousemove', (e) => {
             descendant.y = draggingNode.y + offset.dy;
         });
 
-    } else if (panning) {
+    } else if (panning || trackpadPanning) {
         const dx = mousePos.x - lastMousePos.x;
         const dy = mousePos.y - lastMousePos.y;
         camera.x -= dx / camera.zoom;
@@ -519,6 +520,7 @@ canvas.addEventListener('mouseup', (e) => {
 
     draggingNode = null;
     panning = false;
+    trackpadPanning = false;
     drawingConnection = false;
     connectionStartNode = null;
     draw();
@@ -715,6 +717,54 @@ canvas.addEventListener('wheel', (e) => {
     camera.x += worldPosBeforeZoom.x - worldPosAfterZoom.x;
     camera.y += worldPosBeforeZoom.y - worldPosAfterZoom.y;
     draw();
+});
+
+// Two-finger trackpad gesture support for Mac
+canvas.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 2) {
+        e.preventDefault();
+        trackpadPanning = true;
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+        lastTouchPos = {
+            x: (touch1.clientX + touch2.clientX) / 2,
+            y: (touch1.clientY + touch2.clientY) / 2
+        };
+        // Also clear any node selection to prevent interference
+        selectedNode = null;
+        updateContextHelp();
+        textEditing = false;
+    }
+});
+
+canvas.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 2 && trackpadPanning) {
+        e.preventDefault();
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+        const currentTouchPos = {
+            x: (touch1.clientX + touch2.clientX) / 2,
+            y: (touch1.clientY + touch2.clientY) / 2
+        };
+        
+        const dx = currentTouchPos.x - lastTouchPos.x;
+        const dy = currentTouchPos.y - lastTouchPos.y;
+        camera.x -= dx / camera.zoom;
+        camera.y -= dy / camera.zoom;
+        
+        lastTouchPos = currentTouchPos;
+        draw();
+    }
+});
+
+canvas.addEventListener('touchend', (e) => {
+    if (e.touches.length < 2) {
+        trackpadPanning = false;
+    }
+});
+
+canvas.addEventListener('touchcancel', (e) => {
+    trackpadPanning = false;
 });
 
 canvas.addEventListener('dblclick', (e) => {
@@ -1425,7 +1475,8 @@ function updateContextHelp() {
         contextHelp.innerHTML = `
             <div class="help-title">Map Controls</div>
             <div class="help-item"><span class="help-key">Wheel:</span> Zoom</div>
-            <div class="help-item"><span class="help-key">Mid-drag:</span> Pan</div>
+            <div class="help-item"><span class="help-key">Drag:</span> Pan map</div>
+            <div class="help-item"><span class="help-key">Two-finger:</span> Pan (Mac)</div>
             <div class="help-item"><span class="help-key">Click:</span> Select node</div>
             <div class="help-item"><span class="help-key">Double-click:</span> Create text</div>
             <div class="help-item"><span class="help-key">Ctrl+Shift:</span> Background color</div>
