@@ -446,6 +446,16 @@ canvas.addEventListener('mousedown', (e) => {
     }
 
     if (!clickedOnNode) {
+        // If there was a selected node with empty text, give it default text
+        if (selectedNode && selectedNode.text === '') {
+            if (selectedNode.type === 'text') {
+                selectedNode.text = 'Text';
+            } else {
+                selectedNode.text = selectedNode.type === 'father' ? 'Father Node' : 'Child Node';
+            }
+            draw();
+            saveState();
+        }
         selectedNode = null;
         updateContextHelp();
         textEditing = false;
