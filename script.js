@@ -22,7 +22,6 @@ let cursorBlinkInterval = null;
 let cursorVisible = true;
 let backgroundColor = '#ffffff'; // Default white background
 let changingBackgroundColor = false; // Flag to track if we're changing background color
-const contextHelpDiv = document.getElementById('context-help'); // Get reference to the help div
 
 const MAX_HISTORY_SIZE = 10; // Store last 10 actions
 let history = [];
@@ -329,48 +328,9 @@ function draw() {
             drawNode(node);
         }
     });
-    updateContextHelp(); // Update help after drawing
 }
 
-function updateContextHelp() {
-    let helpText = '';
-    if (selectedNode) {
-        if (selectedNode.type === 'text') {
-            helpText = `<b>Text Object Selected:</b><br>
-            - Type: Edit text<br>
-            - Enter: Stop editing<br>
-            - +/-: Change font size<br>
-            - Ctrl+Del: Remove image<br>
-            - Ctrl+Shift: Change color<br>
-            - Ctrl+C/V: Copy/Paste URL/Image<br>
-            - Del: Delete object`;
-        } else { // Node selected
-            helpText = `<b>Node Selected:</b><br>
-            - Type: Edit text<br>
-            - Tab: Add child node<br>
-            - Enter: Add sibling node<br>
-            - Right-click: Start connection<br>
-            - Drag: Move node/subtree<br>
-            - \\: Fold/Unfold children<br>
-            - +/-: Change size<br>
-            - Ctrl+Del: Remove image<br>
-            - Ctrl+Shift: Change color<br>
-            - Ctrl+C/V: Copy/Paste URL/Image<br>
-            - Del: Delete node/subtree`;
-        }
-    } else {
-        helpText = `<b>No Object Selected:</b><br>
-        - Middle-click: Pan map<br>
-        - Scroll: Zoom map<br>
-        - Dbl-click: Create text object<br>
-        - Click: Select node/text<br>
-        - Ctrl+Shift: Change background color<br>
-        - Esc: Clear map`;
-    }
-    contextHelpDiv.innerHTML = helpText;
-}
-
-canvas.addEventListener('mousedown', (e) {
+canvas.addEventListener('mousedown', (e) => {
     const mousePos = { x: e.clientX, y: e.clientY };
     const worldPos = screenToWorld(mousePos.x, mousePos.y);
     let clickedOnNode = false;
@@ -398,7 +358,6 @@ canvas.addEventListener('mousedown', (e) {
 
                 textEditing = false;
                 isFirstKeyAfterSelection = true; // Set flag when node is selected
-                updateContextHelp();
 
                 // Check if Ctrl/Cmd is pressed and node has a URL
                 if ((e.ctrlKey || e.metaKey) && node.url) {
@@ -417,7 +376,6 @@ canvas.addEventListener('mousedown', (e) {
     if (!clickedOnNode) {
         selectedNode = null;
         textEditing = false;
-        updateContextHelp();
         if (e.button === 1) { // Middle click
             panning = true;
         }
@@ -511,7 +469,6 @@ canvas.addEventListener('mouseup', (e) => {
     connectionStartNode = null;
     draw();
     saveState();
-    updateContextHelp();
 });
 
 // Helper function to check if a node is a descendant of another
@@ -618,7 +575,6 @@ canvas.addEventListener('wheel', (e) => {
     camera.x += worldPosBeforeZoom.x - worldPosAfterZoom.x;
     camera.y += worldPosBeforeZoom.y - worldPosAfterZoom.y;
     draw();
-    updateContextHelp();
 });
 
 canvas.addEventListener('dblclick', (e) => {
@@ -645,7 +601,6 @@ canvas.addEventListener('dblclick', (e) => {
     isFirstKeyAfterSelection = true;
     draw();
     saveState();
-    updateContextHelp();
 });
 
 window.addEventListener('keydown', (e) => {
@@ -676,7 +631,6 @@ window.addEventListener('keydown', (e) => {
         draw();
         saveState(); // Save state after clearing and re-initializing
         location.reload(); // Auto-refresh the page
-        updateContextHelp();
         return; // Stop further execution
     }
 
@@ -688,7 +642,6 @@ window.addEventListener('keydown', (e) => {
             selectedNode.text = selectedNode.type === 'father' ? 'Father Node' : 'Child Node';
             draw();
             saveState();
-            updateContextHelp();
             return;
         }
         
@@ -729,7 +682,6 @@ window.addEventListener('keydown', (e) => {
         isFirstKeyAfterSelection = true;
         draw();
         saveState();
-        updateContextHelp();
         return; // Stop further execution
     }
 
@@ -742,7 +694,6 @@ window.addEventListener('keydown', (e) => {
             selectedNode.text = selectedNode.type === 'father' ? 'Father Node' : 'Child Node';
             draw();
             saveState();
-            updateContextHelp();
             return;
         }
         
@@ -798,7 +749,6 @@ window.addEventListener('keydown', (e) => {
             selectedNode.imageDataURL = null;
             draw();
             saveState();
-            updateContextHelp();
         }
         return;
     }
@@ -850,7 +800,6 @@ window.addEventListener('keydown', (e) => {
         selectedNode = null;
         draw();
         saveState();
-        updateContextHelp();
         return; // Stop further execution
     }
 
@@ -1000,7 +949,6 @@ window.addEventListener('paste', (e) => {
                         selectedNode.imageDataURL = event.target.result; // Store Data URL for saving
                         draw();
                         saveState();
-                        updateContextHelp();
                     };
                 };
                 reader.readAsDataURL(blob);
@@ -1013,7 +961,6 @@ window.addEventListener('paste', (e) => {
             selectedNode.url = clipboardText;
             draw();
             saveState();
-            updateContextHelp();
         } else if (selectedNode.type !== 'text') {
             // Paste text as child nodes (only if parent is not a text object)
             const paragraphs = clipboardText.split(/\n\s*\n/);
@@ -1066,7 +1013,6 @@ window.addEventListener('paste', (e) => {
             });
             draw();
             saveState();
-            updateContextHelp();
         }
     }
 });
@@ -1159,7 +1105,6 @@ function loadStateFromHistory(index) {
         // If no images to load, or all images are already loaded (e.g., from cache), draw immediately
         if (imagesToLoad === 0 || imagesLoaded === imagesToLoad) {
             draw();
-            updateContextHelp();
         }
 
         localStorage.setItem('mindmap', JSON.stringify(state)); // Save current state to local storage after loading from history
@@ -1201,7 +1146,6 @@ function loadMap() {
                     saveState(); // Save the loaded state to history and local storage
                     draw();
                     location.reload(); // Auto-refresh the page
-                    updateContextHelp();
                 } catch (error) {
                     console.error('Error parsing mind map file:', error);
                     alert('Error loading mind map: Invalid file format.');
@@ -1231,14 +1175,12 @@ colorPicker.addEventListener('change', (e) => {
         changingBackgroundColor = false;
         draw();
         saveState();
-        updateContextHelp();
     } else if (selectedNode) {
         // Change node color
         selectedNode.color = newColor;
         updateNodeAndChildrenColor(selectedNode, newColor);
         draw();
         saveState();
-        updateContextHelp();
     }
 });
 
@@ -1277,7 +1219,6 @@ function loadState() {
                 img.onload = () => {
                     newNode.image = img; // Store the loaded Image object
                     draw(); // Redraw after image loads
-                    updateContextHelp();
                 };
                 // Handle potential errors during image loading
                 img.onerror = () => {
@@ -1285,7 +1226,6 @@ function loadState() {
                     newNode.image = null;
                     newNode.imageDataURL = null;
                     draw();
-                    updateContextHelp();
                 };
             }
             return newNode;
@@ -1317,4 +1257,3 @@ function loadState() {
 loadState();
 saveState(); // Save initial state to history after loading
 draw();
-updateContextHelp();
