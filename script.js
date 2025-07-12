@@ -406,6 +406,7 @@ canvas.addEventListener('mousedown', (e) => {
     const mousePos = { x: e.clientX, y: e.clientY };
     const worldPos = screenToWorld(mousePos.x, mousePos.y);
     let clickedOnNode = false;
+    const previousSelectedNode = selectedNode; // Store previous selection
 
     for (let i = nodes.length - 1; i >= 0; i--) {
         const node = nodes[i];
@@ -413,6 +414,15 @@ canvas.addEventListener('mousedown', (e) => {
         if (isClicked) {
             clickedOnNode = true;
             if (e.button === 0) { // Left click
+                // If there was a previously selected node with empty text, give it default text
+                if (previousSelectedNode && previousSelectedNode !== node && previousSelectedNode.text === '') {
+                    if (previousSelectedNode.type === 'text') {
+                        previousSelectedNode.text = 'Text';
+                    } else {
+                        previousSelectedNode.text = previousSelectedNode.type === 'father' ? 'Father Node' : 'Child Node';
+                    }
+                }
+
                 selectedNode = node;
                 updateContextHelp();
                 draggingNode = node;
