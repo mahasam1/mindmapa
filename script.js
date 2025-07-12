@@ -586,7 +586,7 @@ canvas.addEventListener('dblclick', (e) => {
     nodes.push({
         x: worldPos.x,
         y: worldPos.y,
-        text: '',
+        text: 'Text',
         type: 'text',
         shape: 'none',
         color: TEXT_COLOR,
@@ -695,11 +695,7 @@ window.addEventListener('keydown', (e) => {
         
         // If selected node has empty text, give it default text
         if (selectedNode.text === '') {
-            if (selectedNode.type === 'text') {
-                selectedNode.text = 'Text';
-            } else {
-                selectedNode.text = selectedNode.type === 'father' ? 'Father Node' : 'Child Node';
-            }
+            selectedNode.text = selectedNode.type === 'father' ? 'Father Node' : 'Child Node';
             draw();
             saveState();
             return;
@@ -922,12 +918,6 @@ window.addEventListener('keydown', (e) => {
         clearInterval(cursorBlinkInterval);
         cursorBlinkInterval = null;
         cursorVisible = true; // Ensure cursor is visible when not editing
-        
-        // If text object is empty when editing stops, give it default text
-        if (selectedNode && selectedNode.type === 'text' && selectedNode.text === '') {
-            selectedNode.text = 'Text';
-        }
-        
         draw();
         saveState(); // Save state when text editing stops
     }
