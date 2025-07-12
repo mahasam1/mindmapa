@@ -776,7 +776,7 @@ window.addEventListener('keydown', (e) => {
         
         const parentNode = selectedNode;
         let newX = parentNode.x + NODE_RADIUS * 2.5;
-        let newY = parentNode.y;
+        let newY = parentNode.y - NODE_RADIUS * 0.75; // Position slightly above parent to leave space for siblings
 
         // Adjust position to avoid overlap
         let attempts = 0;
