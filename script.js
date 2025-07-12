@@ -85,22 +85,34 @@ function getNodeLevel(node) {
 }
 
 function wrapText(context, text, maxWidth) {
-    const words = text.split(' ');
-    let line = '';
+    // First split by newlines to handle explicit line breaks
+    const paragraphs = text.split('\n');
     const lines = [];
-
-    for (let n = 0; n < words.length; n++) {
-        const testLine = line + words[n] + ' ';
-        const metrics = context.measureText(testLine);
-        const testWidth = metrics.width;
-        if (testWidth > maxWidth && n > 0) {
-            lines.push(line.trim());
-            line = words[n] + ' ';
-        } else {
-            line = testLine;
+    
+    paragraphs.forEach(paragraph => {
+        if (paragraph === '') {
+            // Handle empty lines (just newlines)
+            lines.push('');
+            return;
         }
-    }
-    lines.push(line.trim());
+        
+        const words = paragraph.split(' ');
+        let line = '';
+
+        for (let n = 0; n < words.length; n++) {
+            const testLine = line + words[n] + ' ';
+            const metrics = context.measureText(testLine);
+            const testWidth = metrics.width;
+            if (testWidth > maxWidth && n > 0) {
+                lines.push(line.trim());
+                line = words[n] + ' ';
+            } else {
+                line = testLine;
+            }
+        }
+        lines.push(line.trim());
+    });
+    
     return lines;
 }
 
@@ -816,6 +828,14 @@ window.addEventListener('keydown', (e) => {
     }
 
     if (e.key === 'Enter' && selectedNode) {
+        // Handle SHIFT+ENTER for new lines during text editing
+        if (e.shiftKey && textEditing) {
+            e.preventDefault();
+            selectedNode.text += '\n';
+            draw();
+            return;
+        }
+        
         e.preventDefault(); // Prevent default Enter behavior (e.g., new line in input fields)
         textEditing = false; // Always stop text editing on Enter
         
