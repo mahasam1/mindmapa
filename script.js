@@ -819,6 +819,10 @@ window.addEventListener('keydown', (e) => {
             imageDataURL: null, // Will store the Data URL string for saving
             imageScale: 1.0 // New property for image scaling
         });
+        // Center camera on the father node
+        camera.x = 0;
+        camera.y = 0;
+        camera.zoom = 1;
         draw();
         saveState(); // Save state after clearing and re-initializing
         location.reload(); // Auto-refresh the page
