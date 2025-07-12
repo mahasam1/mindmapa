@@ -884,8 +884,24 @@ window.addEventListener('keydown', (e) => {
         }
         
         const parentNode = selectedNode;
-        let newX = parentNode.x + NODE_RADIUS * 2.5;
-        let newY = parentNode.y - NODE_RADIUS * 0.75; // Position slightly above parent to leave space for siblings
+        
+        // Determine which side to place the child based on parent's position relative to its own parent
+        let newX, newY;
+        const parentIndex = nodes.indexOf(parentNode);
+        const grandparentConnection = connections.find(c => c[1] === parentIndex);
+        
+        if (grandparentConnection) {
+            // Parent has a grandparent, position child on same side as parent relative to grandparent
+            const grandparentNode = nodes[grandparentConnection[0]];
+            const parentIsOnRight = parentNode.x >= grandparentNode.x;
+            newX = parentIsOnRight ? 
+                parentNode.x + NODE_RADIUS * 2.5 : 
+                parentNode.x - NODE_RADIUS * 2.5;
+        } else {
+            // Parent is a root node, default to right side
+            newX = parentNode.x + NODE_RADIUS * 2.5;
+        }
+        newY = parentNode.y - NODE_RADIUS * 0.75; // Position slightly above parent to leave space for siblings
 
         // Adjust position to avoid overlap
         let attempts = 0;
@@ -912,9 +928,9 @@ window.addEventListener('keydown', (e) => {
             imageScale: 1.0 // New property for image scaling
         };
         nodes.push(newNode);
-        const parentIndex = nodes.indexOf(parentNode);
+        const parentIdx = nodes.indexOf(parentNode);
         const newIndex = nodes.length - 1;
-        connections.push([parentIndex, newIndex]);
+        connections.push([parentIdx, newIndex]);
         selectedNode = newNode;
         updateContextHelp();
         textEditing = true;
@@ -951,6 +967,7 @@ window.addEventListener('keydown', (e) => {
         // Create sibling node logic
         const parentConnection = connections.find(c => nodes[c[1]] === selectedNode);
         if (parentConnection) {
+            // Keep sibling on same X position as selected node (same side as parent)
             let newX = selectedNode.x;
             let newY = selectedNode.y + NODE_RADIUS * 1.5;
 
@@ -981,9 +998,9 @@ window.addEventListener('keydown', (e) => {
                 imageScale: 1.0 // New property for image scaling
             };
             nodes.push(newNode);
-            const parentIndex = nodes.indexOf(parentNode);
+            const parentIdx = nodes.indexOf(parentNode);
             const newIndex = nodes.length - 1;
-            connections.push([parentIndex, newIndex]);
+            connections.push([parentIdx, newIndex]);
             selectedNode = newNode; // Select the new node
             updateContextHelp();
             textEditing = true; // Start editing the new node
@@ -1227,10 +1244,20 @@ window.addEventListener('paste', (e) => {
             const parentNode = selectedNode;
             const firstRootNode = nodes[0]; // The very first node of the map
 
-            // Determine the horizontal direction for all new nodes from this paste
-            // Place nodes on the opposite side of the first father node
-            // If there's only one node, default to right side
-            const placeOnRight = nodes.length === 1 ? true : parentNode.x > firstRootNode.x;
+            // Determine the horizontal direction based on parent's position relative to its own parent
+            const parentIndex = nodes.indexOf(parentNode);
+            const grandparentConnection = connections.find(c => c[1] === parentIndex);
+            let placeOnRight;
+            
+            if (grandparentConnection) {
+                // Parent has a grandparent, place children on same side as parent relative to grandparent
+                const grandparentNode = nodes[grandparentConnection[0]];
+                placeOnRight = parentNode.x >= grandparentNode.x;
+            } else {
+                // Parent is a root node, default to right side
+                placeOnRight = true;
+            }
+            
             const initialX = placeOnRight ? parentNode.x + NODE_RADIUS * 2.5 : parentNode.x - NODE_RADIUS * 2.5;
 
             paragraphs.forEach((paragraph, index) => {
@@ -1264,9 +1291,9 @@ window.addEventListener('paste', (e) => {
                         imageScale: 1.0 // New property for image scaling
                     };
                     nodes.push(newNode);
-                    const parentIndex = nodes.indexOf(parentNode);
+                    const parentIdx = nodes.indexOf(parentNode);
                     const newIndex = nodes.length - 1;
-                    connections.push([parentIndex, newIndex]);
+                    connections.push([parentIdx, newIndex]);
                     lastPastedNode = newNode; // Update the last pasted node
                 }
             });
