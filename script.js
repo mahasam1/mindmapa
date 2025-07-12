@@ -1429,4 +1429,4 @@ function updateContextHelp() {
 loadState();
 saveState(); // Save initial state to history after loading
 updateContextHelp(); // Initialize context help
-draw();\"// Force update\" 
+draw();
