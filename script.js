@@ -533,6 +533,31 @@ canvas.addEventListener('mouseup', (e) => {
         }
     }
 
+    // Check for horizontal mirroring after drag is complete
+    if (draggingNode && draggedDescendantOffsets.size > 0) {
+        // Find the parent of the dragged node
+        const draggingNodeIndex = nodes.indexOf(draggingNode);
+        const parentConnection = connections.find(c => c[1] === draggingNodeIndex);
+        
+        if (parentConnection) {
+            const parentNode = nodes[parentConnection[0]];
+            
+            // Check if the node crossed to the opposite side of its parent
+            const wasOnRightSide = draggingNodeInitialPos.x >= parentNode.x;
+            const isOnRightSide = draggingNode.x >= parentNode.x;
+            
+            // If the node crossed sides, mirror all its children horizontally
+            if (wasOnRightSide !== isOnRightSide) {
+                const descendants = getAllDescendants(draggingNode);
+                descendants.forEach(descendant => {
+                    // Mirror the child position relative to the dragged node
+                    const dx = descendant.x - draggingNode.x;
+                    descendant.x = draggingNode.x - dx; // Mirror horizontally
+                });
+            }
+        }
+    }
+
     draggingNode = null;
     panning = false;
     trackpadPanning = false;
