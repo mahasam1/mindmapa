@@ -146,9 +146,10 @@ function drawNode(node) {
     // Calculate dimensions based on node type
     if (node.type === 'child') {
         // For child nodes, calculate optimal rectangle dimensions relative to father node
-        const fatherNodeSize = NODE_RADIUS * 2 * camera.zoom; // Father node diameter with zoom
+        const nodeScale = (node.radius || NODE_RADIUS) / NODE_RADIUS; // Use node's radius as a scale factor
+        const fatherNodeSize = NODE_RADIUS * 2 * camera.zoom * nodeScale; // Father node diameter with zoom and scale
         const minWidth = fatherNodeSize / 1.3; // 1.3 times smaller than father node
-        const padding = 8 * camera.zoom; // Reduced padding for compact design
+        const padding = 8 * camera.zoom * nodeScale; // Reduced padding for compact design with scale
         
         const textWidth = longestWordWidth + padding;
         nodeWidth = Math.max(textWidth, minWidth);
@@ -217,10 +218,11 @@ function drawNode(node) {
         textHeight = lines.length * fontSize * 1.2; // 1.2 for line spacing
     } else if (node.type === 'child') {
         // For child nodes (rectangles), optimize for text content with relative sizing
-        const fatherNodeSize = NODE_RADIUS * 2 * camera.zoom; // Father node diameter with zoom
+        const nodeScale = (node.radius || NODE_RADIUS) / NODE_RADIUS; // Use node's radius as a scale factor
+        const fatherNodeSize = NODE_RADIUS * 2 * camera.zoom * nodeScale; // Father node diameter with zoom and scale
         const minHeight = fatherNodeSize / 2; // Half the height of father node
         
-        fontSize = 12 * camera.zoom; // Compact font for child nodes
+        fontSize = 12 * camera.zoom * nodeScale; // Compact font for child nodes with scale
         maxTextWidth = nodeWidth * 0.9; // 90% of rectangle width for text
         
         ctx.font = `${fontSize}px Inter`;
@@ -228,7 +230,7 @@ function drawNode(node) {
         textHeight = lines.length * fontSize * 1.2; // 1.2 for line spacing
         
         // Calculate optimal rectangle height based on text with relative minimum
-        const textPadding = 6 * camera.zoom; // Reduced padding
+        const textPadding = 6 * camera.zoom * nodeScale; // Reduced padding with scale
         nodeHeight = Math.max(textHeight + textPadding, minHeight); // Use relative minimum height
         
         // Redraw the rectangle now that we know the proper height
@@ -647,19 +649,20 @@ function getAllDescendants(node) {
 function getNodeDimensions(node) {
     if (node.type === 'child') {
         // For child nodes, calculate rectangle dimensions relative to father node
-        const fatherNodeSize = NODE_RADIUS * 2; // Father node diameter
+        const nodeScale = (node.radius || NODE_RADIUS) / NODE_RADIUS; // Use node's radius as a scale factor
+        const fatherNodeSize = NODE_RADIUS * 2 * nodeScale; // Father node diameter with scale
         const minWidth = fatherNodeSize / 1.3; // 1.3 times smaller than father node
         const minHeight = fatherNodeSize / 2; // Half the height of father node
         
-        const padding = 8; // Reduced padding for more compact design
+        const padding = 8 * nodeScale; // Reduced padding for more compact design with scale
         
         // Estimate text width (simplified)
-        const avgCharWidth = 7; // Approximate character width
+        const avgCharWidth = 7 * nodeScale; // Approximate character width with scale
         const textWidth = node.text.length * avgCharWidth + padding;
         const width = Math.max(textWidth, minWidth);
         
         // Estimate text height
-        const lineHeight = 14;
+        const lineHeight = 14 * nodeScale;
         const lines = Math.ceil(node.text.length / (width / avgCharWidth));
         const height = Math.max(lines * lineHeight + padding, minHeight);
         
@@ -1074,8 +1077,8 @@ window.addEventListener('keydown', (e) => {
         if (selectedNode.type === 'text') {
             // For text objects, change font size
             selectedNode.fontSize = Math.min(selectedNode.fontSize + 2, 72);
-        } else {
-            // For regular nodes, change radius
+        } else if (selectedNode.type === 'father' || selectedNode.type === 'child') {
+            // For father and child nodes, change radius
             selectedNode.radius = Math.min(selectedNode.radius + 5, MAX_NODE_RADIUS);
         }
         draw();
@@ -1088,8 +1091,8 @@ window.addEventListener('keydown', (e) => {
         if (selectedNode.type === 'text') {
             // For text objects, change font size
             selectedNode.fontSize = Math.max(selectedNode.fontSize - 2, 8);
-        } else {
-            // For regular nodes, change radius
+        } else if (selectedNode.type === 'father' || selectedNode.type === 'child') {
+            // For father and child nodes, change radius
             selectedNode.radius = Math.max(selectedNode.radius - 5, MIN_NODE_RADIUS);
         }
         draw();
